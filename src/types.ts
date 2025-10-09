@@ -231,3 +231,54 @@ export interface MarketOverview {
   };
   timestamp: number;
 }
+
+export interface MayanQuote {
+  id: string;
+  outAmount64: string;
+  amountIn64: string;
+  fromToken: string;
+  toToken: string;
+  fromChain: string;
+  toChain: string;
+  slippageBps: number;
+  gasless?: boolean;
+  gasDrop?: number;
+  referrer?: string;
+  referrerBps?: number;
+  tax?: number;
+  usdValue?: number;
+  priceImpact?: string;
+  bridgeFee?: string;
+}
+
+export interface MayanSwapResult {
+  txHash: string;
+  status: string;
+}
+
+export interface MayanTrackingResult {
+  txHash: string;
+  clientStatus: 'INPROGRESS' | 'COMPLETED' | 'REFUNDED';
+  fromChain: string;
+  toChain: string;
+  fromAmount: string;
+  toAmount: string;
+  fromToken: string;
+  toToken: string;
+  senderAddress: string;
+  recipientAddress: string;
+  refundTxHash?: string;
+  destTxHash?: string;
+  errorReason?: string;
+  timestamp: number;
+}
+
+export interface MayanTokenInfo {
+  name: string;
+  symbol: string;
+  decimals: number;
+  address: string;
+  chain: string;
+  logoURI?: string;
+  coingeckoId?: string;
+}

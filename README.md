@@ -14,7 +14,8 @@ pnpm add forgexai-sdk
 
 ## Features
 
-- **Comprehensive Protocol Support**: Interact with major Solana ecosystem protocols including Jupiter, Kamino, Marinade, Raydium, Drift, Tensor, Pyth, and Squads
+- **Comprehensive Protocol Support**: Interact with major Solana ecosystem protocols including Jupiter, Kamino, Marinade, Raydium, Drift, Tensor, Pyth, Squads, and Mayan Finance
+- **Cross-Chain Capabilities**: Execute cross-chain swaps between Solana and other blockchains (Ethereum, BNB Chain, Avalanche, etc.) using Mayan Finance
 - **Wallet Integration**: Simple interfaces for working with Solana wallets
 - **Type Safety**: Full TypeScript support with comprehensive type definitions
 - **Well-Documented**: Clear examples and documentation for all supported features
@@ -93,10 +94,67 @@ const stakeSOL = async () => {
 };
 ```
 
+### Cross-Chain Swap with Mayan Finance
+
+```typescript
+import { ForgeXSolanaSDK } from "forgexai-sdk";
+import { Keypair, Transaction } from "@solana/web3.js";
+
+const crossChainSwap = async () => {
+  // Initialize the SDK with mainnet connection
+  const sdk = ForgeXSolanaSDK.mainnet();
+  
+  // Get USDC token on Solana
+  const solanaTokens = await sdk.mayan.getSupportedTokens("solana");
+  const usdcToken = solanaTokens.find(token => token.symbol === "USDC");
+  
+  // Get ETH token on Ethereum
+  const ethereumTokens = await sdk.mayan.getSupportedTokens("ethereum");
+  const ethToken = ethereumTokens.find(token => token.symbol === "ETH");
+  
+  // Wallet addresses
+  const solanaWalletAddress = "YOUR_SOLANA_WALLET_ADDRESS";
+  const ethereumWalletAddress = "YOUR_ETHEREUM_WALLET_ADDRESS";
+  
+  // Get a quote for the swap (10 USDC -> ETH)
+  const quotes = await sdk.mayan.fetchQuote({
+    amountIn64: "10000000", // 10 USDC (6 decimals)
+    fromToken: usdcToken.address,
+    toToken: ethToken.address,
+    fromChain: "solana",
+    toChain: "ethereum",
+    slippageBps: "auto",
+    gasDrop: 0.01 // 0.01 ETH for gas on Ethereum
+  });
+  
+  // Function to sign the transaction with your wallet
+  const signTransaction = async (tx: Transaction) => {
+    // Replace with your actual signing logic
+    return wallet.signTransaction(tx);
+  };
+  
+  // Execute the swap
+  const swapResult = await sdk.mayan.swapFromSolana(
+    quotes[0],
+    solanaWalletAddress,
+    ethereumWalletAddress,
+    { evm: ethereumWalletAddress, solana: solanaWalletAddress },
+    signTransaction
+  );
+  
+  console.log("Cross-chain swap initiated:", swapResult.txHash);
+  
+  // Track the swap status
+  const status = await sdk.mayan.trackSwap(swapResult.txHash);
+  console.log("Swap status:", status.clientStatus);
+};
+```
+
 ## Supported Protocols
 
 - **Jupiter**: Token swaps and liquidity provision
 - **Kamino**: Automated yield strategies
+- **Mayan Finance**: Cross-chain swaps between Solana and EVM chains
 - **Marinade**: Liquid staking
 - **Raydium**: AMM and yield farming
 - **Drift**: Perpetual futures trading

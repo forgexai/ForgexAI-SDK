@@ -6,6 +6,7 @@ export { DriftClient } from "./drift";
 export { PythClient, PYTH_FEEDS } from "./pyth";
 export { SquadsClient } from "./squads";
 export { RaydiumClient } from "./raydium";
+export { MayanClient } from "./mayan";
 export * from "./wallet";
 
 export * from "./utils/connection";
@@ -36,6 +37,7 @@ export type { MarinadeStakingInfo } from "./marinade";
 export type { DriftPerpPosition } from "./drift";
 export type { PythPriceData } from "./pyth";
 export type { SquadsMultisig, SquadsProposal } from "./squads";
+export type { MayanQuote, MayanSwapResult, MayanTrackingResult, MayanTokenInfo } from "./types";
 
 import { Connection } from "@solana/web3.js";
 import { JupiterClient } from "./jupiter";
@@ -46,6 +48,7 @@ import { DriftClient } from "./drift";
 import { PythClient } from "./pyth";
 import { SquadsClient } from "./squads";
 import { RaydiumClient } from "./raydium";
+import { MayanClient } from "./mayan";
 import type { SDKConfig, SolanaNetwork } from "./types";
 
 export class ForgeXSolanaSDK {
@@ -58,6 +61,7 @@ export class ForgeXSolanaSDK {
   public pyth: PythClient;
   public squads: SquadsClient;
   public raydium: RaydiumClient;
+  public mayan: MayanClient;
 
   constructor(config: SDKConfig) {
     const endpoint =
@@ -75,6 +79,7 @@ export class ForgeXSolanaSDK {
     this.pyth = new PythClient(this.connection);
     this.squads = new SquadsClient(this.connection, config.apiKeys?.squads);
     this.raydium = new RaydiumClient(this.connection);
+    this.mayan = new MayanClient(this.connection);
   }
 
   /**
@@ -223,6 +228,7 @@ export class ForgeXSolanaSDK {
       pyth: false,
       squads: false,
       raydium: false,
+      mayan: false,
     };
 
     try {
@@ -265,6 +271,11 @@ export class ForgeXSolanaSDK {
     try {
       await this.raydium.getPriorityFee();
       checks.raydium = true;
+    } catch {}
+    
+    try {
+      await this.mayan.getSupportedChains();
+      checks.mayan = true;
     } catch {}
 
     return {
