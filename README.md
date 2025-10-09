@@ -14,7 +14,7 @@ pnpm add forgexai-sdk
 
 ## Features
 
-- **Comprehensive Protocol Support**: Interact with major Solana ecosystem protocols including Jupiter, Kamino, Marinade, Raydium, Drift, Tensor, Pyth, Squads, and Mayan Finance
+- **Comprehensive Protocol Support**: Interact with major Solana ecosystem protocols including Jupiter, Kamino, Marinade, Raydium, Drift, Tensor, Pyth, Squads, Mayan Finance, Sanctum, Meteora, MarginFi, and Helius
 - **Cross-Chain Capabilities**: Execute cross-chain swaps between Solana and other blockchains (Ethereum, BNB Chain, Avalanche, etc.) using Mayan Finance
 - **Wallet Integration**: Simple interfaces for working with Solana wallets
 - **Type Safety**: Full TypeScript support with comprehensive type definitions

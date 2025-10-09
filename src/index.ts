@@ -7,6 +7,10 @@ export { PythClient, PYTH_FEEDS } from "./pyth";
 export { SquadsClient } from "./squads";
 export { RaydiumClient } from "./raydium";
 export { MayanClient } from "./mayan";
+export { SanctumClient } from "./sanctum";
+export { MeteoraClient } from "./meteora";
+export { MarginfiClient } from "./marginfi";
+export { HeliusClient } from "./helius";
 export * from "./wallet";
 
 export * from "./utils/connection";
@@ -42,6 +46,18 @@ export type {
   MayanSwapResult,
   MayanTrackingResult,
   MayanTokenInfo,
+  SanctumLsdInfo,
+  SanctumSwapQuote,
+  SanctumSwapResult,
+  MeteoraVault,
+  MeteoraVaultInfo,
+  MeteoraDepositResult,
+  MarginfiPosition,
+  MarginfiMarketInfo,
+  MarginfiAction,
+  HeliusNftMetadata,
+  HeliusWalletActivity,
+  HeliusWebhookConfig,
 } from "./types";
 
 import { Connection } from "@solana/web3.js";
@@ -54,6 +70,10 @@ import { PythClient } from "./pyth";
 import { SquadsClient } from "./squads";
 import { RaydiumClient } from "./raydium";
 import { MayanClient } from "./mayan";
+import { SanctumClient } from "./sanctum";
+import { MeteoraClient } from "./meteora";
+import { MarginfiClient } from "./marginfi";
+import { HeliusClient } from "./helius";
 import type { SDKConfig, SolanaNetwork } from "./types";
 
 export class ForgeXSolanaSDK {
@@ -67,6 +87,10 @@ export class ForgeXSolanaSDK {
   public squads: SquadsClient;
   public raydium: RaydiumClient;
   public mayan: MayanClient;
+  public sanctum: SanctumClient;
+  public meteora: MeteoraClient;
+  public marginfi: MarginfiClient;
+  public helius: HeliusClient;
 
   constructor(config: SDKConfig) {
     const endpoint =
@@ -85,6 +109,10 @@ export class ForgeXSolanaSDK {
     this.squads = new SquadsClient(this.connection, config.apiKeys?.squads);
     this.raydium = new RaydiumClient(this.connection);
     this.mayan = new MayanClient(this.connection);
+    this.sanctum = new SanctumClient(this.connection, config.apiKeys?.sanctum);
+    this.meteora = new MeteoraClient(this.connection, config.apiKeys?.meteora);
+    this.marginfi = new MarginfiClient(this.connection, config.apiKeys?.marginfi);
+    this.helius = new HeliusClient(this.connection, config.apiKeys?.helius || "");
   }
 
   /**
@@ -234,6 +262,10 @@ export class ForgeXSolanaSDK {
       squads: false,
       raydium: false,
       mayan: false,
+      sanctum: false,
+      meteora: false,
+      marginfi: false,
+      helius: false,
     };
 
     try {
@@ -281,6 +313,26 @@ export class ForgeXSolanaSDK {
     try {
       await this.mayan.getSupportedChains();
       checks.mayan = true;
+    } catch {}
+
+    try {
+      await this.sanctum.getAllLsdYields();
+      checks.sanctum = true;
+    } catch {}
+
+    try {
+      await this.meteora.getAllVaults();
+      checks.meteora = true;
+    } catch {}
+
+    try {
+      await this.marginfi.getMarkets();
+      checks.marginfi = true;
+    } catch {}
+
+    try {
+      await this.helius.getWebhooks();
+      checks.helius = true;
     } catch {}
 
     return {

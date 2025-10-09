@@ -163,6 +163,10 @@ export interface SDKConfig {
   apiKeys?: {
     tensor?: string;
     squads?: string;
+    sanctum?: string;
+    meteora?: string;
+    marginfi?: string;
+    helius?: string;
     [key: string]: string | undefined;
   };
   timeout?: number;
@@ -281,4 +285,172 @@ export interface MayanTokenInfo {
   chain: string;
   logoURI?: string;
   coingeckoId?: string;
+}
+
+// Sanctum types
+export interface SanctumLsdInfo {
+  token: string;
+  mint: string;
+  apy: number;
+  tvl: number;
+  protocol: string;
+  stakingStrategy: string;
+}
+
+export interface SanctumSwapQuote {
+  fromMint: string;
+  toMint: string;
+  inAmount: string;
+  outAmount: string;
+  price: number;
+  priceImpact: number;
+  fee: string;
+  routeType: string;
+  slippageBps: number;
+}
+
+export interface SanctumSwapResult {
+  transaction: string;
+  blockhash: string;
+  expectedOutAmount: string;
+}
+
+// Meteora types
+export interface MeteoraVault {
+  address: string;
+  name: string;
+  tokenA: {
+    mint: string;
+    symbol: string;
+    decimals: number;
+  };
+  tokenB: {
+    mint: string;
+    symbol: string;
+    decimals: number;
+  };
+  tvl: number;
+  apr: number;
+  strategyType: string;
+}
+
+export interface MeteoraVaultInfo extends MeteoraVault {
+  apy: number;
+  volume24h: number;
+  fees24h: number;
+  feesTier: string;
+  drawdown: number;
+  sharePriceHistory: Array<{
+    timestamp: number;
+    sharePrice: number;
+  }>;
+  lpTokenMint: string;
+}
+
+export interface MeteoraDepositResult {
+  transaction: string;
+  expectedLpAmount?: string;
+  expectedAmountA?: string;
+  expectedAmountB?: string;
+  blockhash: string;
+}
+
+// MarginFi types
+export interface MarginfiPosition {
+  account: string;
+  owner: string;
+  healthFactor: number;
+  netValue: number;
+  totalBorrowedValue: number;
+  totalSuppliedValue: number;
+  assets: Array<{
+    tokenSymbol: string;
+    tokenMint: string;
+    tokenPrice: number;
+    depositBalance: string;
+    depositValue: number;
+    borrowBalance: string;
+    borrowValue: number;
+    netBalance: string;
+    netValue: number;
+  }>;
+}
+
+export interface MarginfiMarketInfo {
+  tokenMint: string;
+  tokenSymbol: string;
+  tokenName: string;
+  supplyApy: number;
+  borrowApy: number;
+  totalSupply: number;
+  totalBorrow: number;
+  availableLiquidity: number;
+  price: number;
+  borrowCap: number;
+  supplyCap: number;
+  ltv: number;
+}
+
+export interface MarginfiAction {
+  transaction: string;
+  blockhash: string;
+  expectedBalance?: string;
+}
+
+// Helius types
+export interface HeliusNftMetadata {
+  mint: string;
+  name: string;
+  symbol: string;
+  description: string;
+  image: string;
+  attributes: Array<{
+    trait_type: string;
+    value: string;
+  }>;
+  collection?: {
+    name: string;
+    family: string;
+  };
+  properties: any;
+  creators: Array<{
+    address: string;
+    share: number;
+  }>;
+  owner: string;
+  tokenStandard: string;
+  royalty: number;
+}
+
+export interface HeliusWalletActivity {
+  signature: string;
+  timestamp: number;
+  type: string;
+  fee: number;
+  feePayer: string;
+  nativeTransfers: Array<{
+    amount: number;
+    fromUserAccount: string;
+    toUserAccount: string;
+  }>;
+  tokenTransfers: Array<{
+    tokenAmount: number;
+    mint: string;
+    fromUserAccount: string;
+    toUserAccount: string;
+  }>;
+  accountData: Array<{
+    account: string;
+    programId: string;
+    data: any;
+  }>;
+  source: string;
+}
+
+export interface HeliusWebhookConfig {
+  webhookID: string;
+  webhookURL: string;
+  walletAddresses: string[];
+  eventTypes: string[];
+  webhookName: string;
 }
