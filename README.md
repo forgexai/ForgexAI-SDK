@@ -103,19 +103,19 @@ import { Keypair, Transaction } from "@solana/web3.js";
 const crossChainSwap = async () => {
   // Initialize the SDK with mainnet connection
   const sdk = ForgeXSolanaSDK.mainnet();
-  
+
   // Get USDC token on Solana
   const solanaTokens = await sdk.mayan.getSupportedTokens("solana");
-  const usdcToken = solanaTokens.find(token => token.symbol === "USDC");
-  
+  const usdcToken = solanaTokens.find((token) => token.symbol === "USDC");
+
   // Get ETH token on Ethereum
   const ethereumTokens = await sdk.mayan.getSupportedTokens("ethereum");
-  const ethToken = ethereumTokens.find(token => token.symbol === "ETH");
-  
+  const ethToken = ethereumTokens.find((token) => token.symbol === "ETH");
+
   // Wallet addresses
   const solanaWalletAddress = "YOUR_SOLANA_WALLET_ADDRESS";
   const ethereumWalletAddress = "YOUR_ETHEREUM_WALLET_ADDRESS";
-  
+
   // Get a quote for the swap (10 USDC -> ETH)
   const quotes = await sdk.mayan.fetchQuote({
     amountIn64: "10000000", // 10 USDC (6 decimals)
@@ -124,15 +124,15 @@ const crossChainSwap = async () => {
     fromChain: "solana",
     toChain: "ethereum",
     slippageBps: "auto",
-    gasDrop: 0.01 // 0.01 ETH for gas on Ethereum
+    gasDrop: 0.01, // 0.01 ETH for gas on Ethereum
   });
-  
+
   // Function to sign the transaction with your wallet
   const signTransaction = async (tx: Transaction) => {
     // Replace with your actual signing logic
     return wallet.signTransaction(tx);
   };
-  
+
   // Execute the swap
   const swapResult = await sdk.mayan.swapFromSolana(
     quotes[0],
@@ -141,9 +141,9 @@ const crossChainSwap = async () => {
     { evm: ethereumWalletAddress, solana: solanaWalletAddress },
     signTransaction
   );
-  
+
   console.log("Cross-chain swap initiated:", swapResult.txHash);
-  
+
   // Track the swap status
   const status = await sdk.mayan.trackSwap(swapResult.txHash);
   console.log("Swap status:", status.clientStatus);

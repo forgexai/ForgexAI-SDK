@@ -37,7 +37,12 @@ export type { MarinadeStakingInfo } from "./marinade";
 export type { DriftPerpPosition } from "./drift";
 export type { PythPriceData } from "./pyth";
 export type { SquadsMultisig, SquadsProposal } from "./squads";
-export type { MayanQuote, MayanSwapResult, MayanTrackingResult, MayanTokenInfo } from "./types";
+export type {
+  MayanQuote,
+  MayanSwapResult,
+  MayanTrackingResult,
+  MayanTokenInfo,
+} from "./types";
 
 import { Connection } from "@solana/web3.js";
 import { JupiterClient } from "./jupiter";
@@ -272,7 +277,7 @@ export class ForgeXSolanaSDK {
       await this.raydium.getPriorityFee();
       checks.raydium = true;
     } catch {}
-    
+
     try {
       await this.mayan.getSupportedChains();
       checks.mayan = true;

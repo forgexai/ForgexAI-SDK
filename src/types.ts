@@ -258,7 +258,7 @@ export interface MayanSwapResult {
 
 export interface MayanTrackingResult {
   txHash: string;
-  clientStatus: 'INPROGRESS' | 'COMPLETED' | 'REFUNDED';
+  clientStatus: "INPROGRESS" | "COMPLETED" | "REFUNDED";
   fromChain: string;
   toChain: string;
   fromAmount: string;
