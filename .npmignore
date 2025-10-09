@@ -1,0 +1,43 @@
+# Source
+src/
+
+# Development files
+.git/
+.github/
+.vscode/
+.idea/
+.editorconfig
+.eslintrc*
+.prettierrc*
+
+# Build artifacts
+*.tgz
+
+# Tests
+__tests__/
+test/
+tests/
+coverage/
+
+# Configuration files
+tsconfig.json
+tsconfig.*.json
+jest.config.js
+babel.config.js
+.babelrc*
+rollup.config.js
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Other
+.DS_Store
+node_modules/
+.npm/
+.env*
+*.swp
+*.swo
