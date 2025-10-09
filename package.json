@@ -3,12 +3,16 @@
   "version": "0.1.0",
   "description": "A comprehensive SDK for interacting with Solana DeFi protocols",
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "commonjs",
+  "files": [
+    "dist/**/*"
+  ],
   "private": false,
   "scripts": {
-    "build": "tsc --skipLibCheck",
-    "clean": "rm -rf dist",
+    "build": "tsc --skipLibCheck --noEmit false",
+    "clean": "rimraf dist",
     "prebuild": "npm run clean",
     "prepublishOnly": "npm run build",
     "test": "echo \"No tests yet\""
@@ -35,6 +39,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "rimraf": "^6.0.1",
     "typescript": "^5"
   },
   "dependencies": {

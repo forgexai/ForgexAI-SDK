@@ -24,72 +24,72 @@ pnpm add forgexai-sdk
 ### Initialize a Connection
 
 ```typescript
-import { Connection } from '@solana/web3.js';
-import { getConnection } from 'forgexai-sdk';
+import { Connection } from "@solana/web3.js";
+import { getConnection } from "forgexai-sdk";
 
 // Get a connection with automatic retry and reconnection handling
-const connection = getConnection('mainnet-beta');
+const connection = getConnection("mainnet-beta");
 ```
 
 ### Jupiter Swap
 
 ```typescript
-import { jupiterSwap } from 'forgexai-sdk';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { jupiterSwap } from "forgexai-sdk";
+import { Connection, PublicKey } from "@solana/web3.js";
 
 const performSwap = async () => {
-  const connection = new Connection('https://api.mainnet-beta.solana.com');
-  const walletPublicKey = new PublicKey('your-wallet-address');
-  
+  const connection = new Connection("https://api.mainnet-beta.solana.com");
+  const walletPublicKey = new PublicKey("your-wallet-address");
+
   const result = await jupiterSwap({
     connection,
     wallet: walletPublicKey,
-    fromToken: 'SOL',
-    toToken: 'USDC',
+    fromToken: "SOL",
+    toToken: "USDC",
     amount: 1.0,
-    slippage: 0.5
+    slippage: 0.5,
   });
-  
-  console.log('Swap successful:', result);
+
+  console.log("Swap successful:", result);
 };
 ```
 
 ### Kamino Finance Integration
 
 ```typescript
-import { getKaminoPositions } from 'forgexai-sdk';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { getKaminoPositions } from "forgexai-sdk";
+import { Connection, PublicKey } from "@solana/web3.js";
 
 const getPositions = async () => {
-  const connection = new Connection('https://api.mainnet-beta.solana.com');
-  const walletPublicKey = new PublicKey('your-wallet-address');
-  
+  const connection = new Connection("https://api.mainnet-beta.solana.com");
+  const walletPublicKey = new PublicKey("your-wallet-address");
+
   const positions = await getKaminoPositions({
     connection,
-    wallet: walletPublicKey
+    wallet: walletPublicKey,
   });
-  
-  console.log('Kamino positions:', positions);
+
+  console.log("Kamino positions:", positions);
 };
 ```
 
 ### Staking with Marinade
 
 ```typescript
-import { marinadeDeposit } from 'forgexai-sdk';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { marinadeDeposit } from "forgexai-sdk";
+import { Connection, PublicKey } from "@solana/web3.js";
 
 const stakeSOL = async () => {
-  const connection = new Connection('https://api.mainnet-beta.solana.com');
-  const walletPublicKey = new PublicKey('your-wallet-address');
-  
+  const connection = new Connection("https://api.mainnet-beta.solana.com");
+  const walletPublicKey = new PublicKey("your-wallet-address");
+
   const result = await marinadeDeposit({
     connection,
     wallet: walletPublicKey,
-    amount: 5 // SOL
+    amount: 5, // SOL
   });
-  
-  console.log('Staking successful:', result);
+
+  console.log("Staking successful:", result);
 };
 ```
 
@@ -104,6 +104,23 @@ const stakeSOL = async () => {
 - **Pyth**: Price oracle data
 - **Squads**: Multisig and DAO tools
 
+## Examples
+
+You can find example scripts in the `examples` directory:
+
+- `basic-usage.js` - Simple examples of how to use the SDK
+- `portfolio-analysis.js` - More advanced example showing DeFi portfolio analysis
+
+To run an example:
+
+```bash
+# First build the SDK
+npm run build
+
+# Then run an example
+node examples/basic-usage.js
+```
+
 ## Development
 
 ```bash
@@ -115,6 +132,21 @@ npm run build
 
 # Run tests
 npm test
+```
+
+## Publishing
+
+To publish the SDK to npm:
+
+```bash
+# Login to npm (only needed once)
+npm login
+
+# Build the package
+npm run build
+
+# Publish to npm
+npm publish
 ```
 
 ## License
