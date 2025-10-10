@@ -18,7 +18,7 @@ import {
   SolanaSdkFactory,
 } from "@dialectlabs/blockchain-sdk-solana";
 
-import { PublicKey, Connection, Keypair } from "@solana/web3.js";
+import { PublicKey, Keypair } from "@solana/web3.js";
 
 /**
  * DialectService
@@ -31,15 +31,18 @@ import { PublicKey, Connection, Keypair } from "@solana/web3.js";
  */
 export class DialectService {
   private sdk: DialectSdk<Solana>;
-
+  private apikey: string;
   constructor(
     private readonly network:
       | "mainnet-beta"
       | "devnet"
       | "testnet" = "mainnet-beta",
     private readonly rpcUrl?: string,
-    private readonly dialectApiUrl?: string
-  ) {}
+    private readonly dialectApiUrl?: string,
+    apikey?: string
+  ) {
+    this.apikey = apikey || process.env.DIALECT_API_KEY || "";
+  }
 
   /**
    * Initialize the Dialect SDK
@@ -48,7 +51,7 @@ export class DialectService {
    */
   public async init() {
     try {
-      const credentials = process.env.DIALECT_SDK_CREDENTIALS;
+      const credentials = this.apikey;
       if (!credentials) {
         throw new Error(
           "Missing DIALECT_SDK_CREDENTIALS (expects a JSON array keypair)"

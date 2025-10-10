@@ -9,7 +9,6 @@ import {
 
 export interface CrossmintConfig {
   apiKey: string;
-  jwt?: string;
 }
 export interface WalletConfig {
   chain: Chain;
@@ -37,7 +36,6 @@ export class CrossmintWalletService {
   constructor(config: CrossmintConfig) {
     const crossmint = createCrossmint({
       apiKey: config.apiKey,
-      experimental_customAuth: config.jwt ? { jwt: config.jwt } : undefined,
     });
 
     this.crossmintWallets = CrossmintWallets.from(crossmint);
@@ -200,7 +198,6 @@ export async function exampleUsage() {
   // Initialize the service
   const walletService = new CrossmintWalletService({
     apiKey: process.env.CROSSMINT_API_KEY!,
-    jwt: process.env.JWT_TOKEN, // Optional for server-side
   });
 
   // Create or get a wallet
