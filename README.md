@@ -105,23 +105,23 @@ import { PublicKey } from "@solana/web3.js";
 const lendWithSolend = async () => {
   // Initialize the SDK with mainnet connection
   const sdk = ForgeXSolanaSDK.mainnet();
-  
+
   // Initialize Solend pools
   await sdk.solend.initialize();
-  
+
   const walletPublicKey = new PublicKey("your-wallet-address");
-  
+
   // Get all available reserves
   const reserves = sdk.solend.getReserves();
   console.log("Available lending markets:", reserves);
-  
+
   // Build a deposit transaction (deposit 100 USDC)
   const depositAction = await sdk.solend.buildDepositTransaction(
     100, // amount
     "USDC", // token symbol
     walletPublicKey
   );
-  
+
   // Execute the transaction (you need to implement sendTransaction)
   const signature = await sdk.solend.executeAction(
     depositAction,
@@ -130,7 +130,7 @@ const lendWithSolend = async () => {
       return "transaction-signature";
     }
   );
-  
+
   console.log("Deposit successful:", signature);
 };
 ```
@@ -143,14 +143,14 @@ import { PublicKey } from "@solana/web3.js";
 
 const privateTransfer = async () => {
   const sdk = ForgeXSolanaSDK.mainnet();
-  
+
   const result = await sdk.elusiv.createPrivateTransfer({
     amount: 1000000, // 1 USDC in lamports
     tokenMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
     recipient: new PublicKey("recipient-address"),
-    memo: "Private payment"
+    memo: "Private payment",
   });
-  
+
   console.log("Private transfer successful:", result);
 };
 ```

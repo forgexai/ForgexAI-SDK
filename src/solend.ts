@@ -8,7 +8,12 @@ import {
   InputReserveType,
   SaveWallet,
 } from "@solendprotocol/solend-sdk";
-import { Connection, PublicKey, Transaction, VersionedTransaction } from "@solana/web3.js";
+import {
+  Connection,
+  PublicKey,
+  Transaction,
+  VersionedTransaction,
+} from "@solana/web3.js";
 import BigNumber from "bignumber.js";
 import BN from "bn.js";
 
@@ -59,10 +64,7 @@ export class SolendClient {
   private environment: string;
   private pools: { [key: string]: PoolType } = {};
 
-  constructor(
-    connection: Connection,
-    environment: string = "production"
-  ) {
+  constructor(connection: Connection, environment: string = "production") {
     this.connection = connection;
     this.environment = environment;
   }
@@ -79,7 +81,7 @@ export class SolendClient {
         "So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo", // mainnet program ID
         await this.connection.getSlot(),
         false, // skipPrices
-        false  // debug
+        false // debug
       );
       console.log("Initialized Solend with pools:", Object.keys(this.pools));
     } catch (error) {
@@ -103,7 +105,7 @@ export class SolendClient {
     if (!pool) {
       throw new Error(`Pool "${poolName}" not found`);
     }
-    
+
     return pool.reserves.find(
       (reserve: any) => reserve.symbol?.toLowerCase() === symbol.toLowerCase()
     );
@@ -123,9 +125,15 @@ export class SolendClient {
       name: reserve.name || reserve.symbol || "Unknown",
       totalSupply: reserve.totalSupply || new BigNumber(0),
       totalBorrow: reserve.totalBorrow || new BigNumber(0),
-      supplyApy: reserve.supplyInterest ? Number(reserve.supplyInterest) * 100 : 0,
-      borrowApy: reserve.borrowInterest ? Number(reserve.borrowInterest) * 100 : 0,
-      utilization: reserve.reserveUtilization ? Number(reserve.reserveUtilization) * 100 : 0,
+      supplyApy: reserve.supplyInterest
+        ? Number(reserve.supplyInterest) * 100
+        : 0,
+      borrowApy: reserve.borrowInterest
+        ? Number(reserve.borrowInterest) * 100
+        : 0,
+      utilization: reserve.reserveUtilization
+        ? Number(reserve.reserveUtilization) * 100
+        : 0,
       available: reserve.availableAmount || new BigNumber(0),
     }));
   }
@@ -149,7 +157,9 @@ export class SolendClient {
       );
 
       // For now, return the raw data - you'd need token metadata for proper formatting
-      return rawWalletData.userAssociatedTokenAccounts.filter(account => account !== null);
+      return rawWalletData.userAssociatedTokenAccounts.filter(
+        (account) => account !== null
+      );
     } catch (error) {
       console.error("Failed to fetch wallet assets:", error);
       return [];
@@ -391,10 +401,14 @@ export class SolendClient {
     return Object.entries(this.pools).map(([name, pool]) => ({
       name,
       address: pool.address,
-      totalSupply: pool.reserves.reduce((sum: BigNumber, r: any) => 
-        sum.plus(r.totalSupply || 0), new BigNumber(0)),
-      totalBorrow: pool.reserves.reduce((sum: BigNumber, r: any) => 
-        sum.plus(r.totalBorrow || 0), new BigNumber(0)),
+      totalSupply: pool.reserves.reduce(
+        (sum: BigNumber, r: any) => sum.plus(r.totalSupply || 0),
+        new BigNumber(0)
+      ),
+      totalBorrow: pool.reserves.reduce(
+        (sum: BigNumber, r: any) => sum.plus(r.totalBorrow || 0),
+        new BigNumber(0)
+      ),
       reserves: pool.reserves.length,
     }));
   }
