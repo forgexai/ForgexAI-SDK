@@ -167,7 +167,13 @@ export interface SDKConfig {
     meteora?: string;
     marginfi?: string;
     helius?: string;
-    [key: string]: string | undefined;
+    birdeye?: string;
+    shyft?: string;
+    crossmint?: {
+      apiKey: string;
+      jwt?: string;
+    };
+    [key: string]: string | object | undefined;
   };
   timeout?: number;
   retries?: number;

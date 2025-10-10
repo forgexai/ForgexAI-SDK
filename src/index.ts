@@ -13,6 +13,12 @@ export { MarginfiClient } from "./marginfi";
 export { HeliusClient } from "./helius";
 export { ElusivClient } from "./elusiv";
 export { SolendClient } from "./solend";
+export { BirdeyeClient } from "./birdeye";
+export { ClockworkService } from "./clockwork";
+export { CrossmintWalletService } from "./crossmint";
+export { DexScreenerClient } from "./dexscreener";
+export { DialectService } from "./dialect";
+export { ShyftService } from "./shyft";
 export * from "./wallet";
 
 export * from "./utils/connection";
@@ -78,6 +84,18 @@ export type {
   InputPoolType,
 } from "./solend";
 
+export type {
+  CrossmintConfig,
+  WalletConfig,
+  TransferParams,
+  DelegatedSignerParams,
+  CustomTransactionParams,
+} from "./crossmint";
+
+export type {
+  DexPair,
+} from "./dexscreener";
+
 import { Connection } from "@solana/web3.js";
 import { JupiterClient } from "./jupiter";
 import { KaminoClient } from "./kamino";
@@ -94,6 +112,12 @@ import { MarginfiClient } from "./marginfi";
 import { HeliusClient } from "./helius";
 import { ElusivClient } from "./elusiv";
 import { SolendClient } from "./solend";
+import { BirdeyeClient } from "./birdeye";
+import { ClockworkService } from "./clockwork";
+import { CrossmintWalletService } from "./crossmint";
+import { DexScreenerClient } from "./dexscreener";
+import { DialectService } from "./dialect";
+import { ShyftService } from "./shyft";
 import type { SDKConfig, SolanaNetwork } from "./types";
 
 export class ForgeXSolanaSDK {
@@ -112,6 +136,12 @@ export class ForgeXSolanaSDK {
   public marginfi: MarginfiClient;
   public helius: HeliusClient;
   public solend: SolendClient;
+  public birdeye?: BirdeyeClient;
+  public clockwork?: ClockworkService;
+  public crossmint?: CrossmintWalletService;
+  public dexscreener: DexScreenerClient;
+  public dialect?: DialectService;
+  public shyft?: ShyftService;
 
   constructor(config: SDKConfig) {
     const endpoint =
@@ -141,6 +171,25 @@ export class ForgeXSolanaSDK {
       config.apiKeys?.helius || ""
     );
     this.solend = new SolendClient(this.connection);
+    
+    // Initialize optional services with API keys
+    if (config.apiKeys?.birdeye) {
+      this.birdeye = new BirdeyeClient(config.apiKeys.birdeye);
+    }
+    
+    if (config.apiKeys?.shyft) {
+      this.shyft = new ShyftService(config.apiKeys.shyft);
+    }
+    
+    if (config.apiKeys?.crossmint) {
+      this.crossmint = new CrossmintWalletService(config.apiKeys.crossmint);
+    }
+    
+    // Initialize services that don't require API keys
+    this.dexscreener = new DexScreenerClient();
+    
+    // Note: Clockwork and Dialect require special initialization
+    // They can be initialized later with specific configurations
   }
 
   /**
@@ -149,6 +198,16 @@ export class ForgeXSolanaSDK {
   static mainnet(apiKeys?: {
     tensor?: string;
     squads?: string;
+    sanctum?: string;
+    meteora?: string;
+    marginfi?: string;
+    helius?: string;
+    birdeye?: string;
+    shyft?: string;
+    crossmint?: {
+      apiKey: string;
+      jwt?: string;
+    };
   }): ForgeXSolanaSDK {
     return new ForgeXSolanaSDK({
       connection: {
@@ -165,6 +224,16 @@ export class ForgeXSolanaSDK {
   static devnet(apiKeys?: {
     tensor?: string;
     squads?: string;
+    sanctum?: string;
+    meteora?: string;
+    marginfi?: string;
+    helius?: string;
+    birdeye?: string;
+    shyft?: string;
+    crossmint?: {
+      apiKey: string;
+      jwt?: string;
+    };
   }): ForgeXSolanaSDK {
     return new ForgeXSolanaSDK({
       connection: {
@@ -180,7 +249,20 @@ export class ForgeXSolanaSDK {
    */
   static custom(
     endpoint: string,
-    apiKeys?: { tensor?: string; squads?: string }
+    apiKeys?: {
+      tensor?: string;
+      squads?: string;
+      sanctum?: string;
+      meteora?: string;
+      marginfi?: string;
+      helius?: string;
+      birdeye?: string;
+      shyft?: string;
+      crossmint?: {
+        apiKey: string;
+        jwt?: string;
+      };
+    }
   ): ForgeXSolanaSDK {
     return new ForgeXSolanaSDK({
       connection: {
@@ -295,6 +377,10 @@ export class ForgeXSolanaSDK {
       marginfi: false,
       helius: false,
       solend: false,
+      birdeye: false,
+      dexscreener: false,
+      shyft: false,
+      crossmint: false,
     };
 
     try {
@@ -368,6 +454,32 @@ export class ForgeXSolanaSDK {
       await this.solend.initialize();
       checks.solend = true;
     } catch {}
+
+    if (this.birdeye) {
+      try {
+        await this.birdeye.getTokenPrice("So11111111111111111111111111111111111111112"); // SOL
+        checks.birdeye = true;
+      } catch {}
+    }
+
+    try {
+      await this.dexscreener.getTokenPairs("solana", "So11111111111111111111111111111111111111112");
+      checks.dexscreener = true;
+    } catch {}
+
+    if (this.shyft) {
+      try {
+        await this.shyft.getWalletBalance("11111111111111111111111111111112");
+        checks.shyft = true;
+      } catch {}
+    }
+
+    if (this.crossmint) {
+      try {
+        // Crossmint doesn't have a simple health check endpoint
+        checks.crossmint = true;
+      } catch {}
+    }
 
     return {
       ...checks,

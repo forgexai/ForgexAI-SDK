@@ -14,10 +14,15 @@ pnpm add forgexai-sdk
 
 ## Features
 
-- **Comprehensive Protocol Support**: Interact with major Solana ecosystem protocols including Jupiter, Kamino, Marinade, Raydium, Drift, Tensor, Pyth, Squads, Mayan Finance, Sanctum, Meteora, MarginFi, Helius, Elusiv, and Solend
+- **Comprehensive Protocol Support**: Interact with 21+ Solana ecosystem protocols including Jupiter, Kamino, Marinade, Raydium, Drift, Tensor, Pyth, Squads, Mayan Finance, Sanctum, Meteora, MarginFi, Helius, Elusiv, Solend, Birdeye, Clockwork, Crossmint, DexScreener, Dialect, and Shyft
 - **Cross-Chain Capabilities**: Execute cross-chain swaps between Solana and other blockchains (Ethereum, BNB Chain, Avalanche, etc.) using Mayan Finance
 - **Privacy Features**: Private transactions and balance protection using Elusiv
 - **Lending & Borrowing**: Access decentralized lending markets through Solend and MarginFi
+- **Market Data & Analytics**: Real-time price data, DEX analytics, and market insights from Birdeye and DexScreener
+- **Wallet Infrastructure**: Simplified wallet creation and management through Crossmint
+- **Notifications & Messaging**: Web3 communications via Dialect
+- **Automation**: Schedule and automate transactions using Clockwork
+- **Blockchain Data**: Comprehensive on-chain data access through Shyft APIs
 - **Wallet Integration**: Simple interfaces for working with Solana wallets
 - **Type Safety**: Full TypeScript support with comprehensive type definitions
 - **Well-Documented**: Clear examples and documentation for all supported features
@@ -228,6 +233,12 @@ const crossChainSwap = async () => {
 - **Helius**: Enhanced RPC and webhooks
 - **Elusiv**: Privacy-preserving transactions
 - **Solend**: Decentralized lending protocol
+- **Birdeye**: Token price data and market analytics
+- **Clockwork**: Automated transaction scheduling
+- **Crossmint**: Simplified wallet and NFT infrastructure
+- **DexScreener**: DEX analytics and token pair data
+- **Dialect**: Web3 notifications and messaging
+- **Shyft**: Blockchain data APIs and wallet analytics
 
 ## Examples
 
@@ -242,6 +253,12 @@ You can find example scripts in the `examples` directory:
 - `mayan-cross-chain-swap.js` - Cross-chain swaps
 - `meteora-example.js` - Meteora vault interactions
 - `sanctum-example.js` - Liquid staking with Sanctum
+- `birdeye-example.js` - Token price data and market analytics
+- `clockwork-example.js` - Automated transaction scheduling
+- `crossmint-example.js` - Simplified wallet infrastructure
+- `dexscreener-example.js` - DEX analytics and token pair data
+- `dialect-example.js` - Web3 notifications and messaging
+- `shyft-example.js` - Blockchain data APIs and wallet analytics
 
 To run an example:
 
