@@ -92,9 +92,7 @@ export type {
   CustomTransactionParams,
 } from "./crossmint";
 
-export type {
-  DexPair,
-} from "./dexscreener";
+export type { DexPair } from "./dexscreener";
 
 import { Connection } from "@solana/web3.js";
 import { JupiterClient } from "./jupiter";
@@ -171,23 +169,23 @@ export class ForgeXSolanaSDK {
       config.apiKeys?.helius || ""
     );
     this.solend = new SolendClient(this.connection);
-    
+
     // Initialize optional services with API keys
     if (config.apiKeys?.birdeye) {
       this.birdeye = new BirdeyeClient(config.apiKeys.birdeye);
     }
-    
+
     if (config.apiKeys?.shyft) {
       this.shyft = new ShyftService(config.apiKeys.shyft);
     }
-    
+
     if (config.apiKeys?.crossmint) {
       this.crossmint = new CrossmintWalletService(config.apiKeys.crossmint);
     }
-    
+
     // Initialize services that don't require API keys
     this.dexscreener = new DexScreenerClient();
-    
+
     // Note: Clockwork and Dialect require special initialization
     // They can be initialized later with specific configurations
   }
@@ -457,13 +455,18 @@ export class ForgeXSolanaSDK {
 
     if (this.birdeye) {
       try {
-        await this.birdeye.getTokenPrice("So11111111111111111111111111111111111111112"); // SOL
+        await this.birdeye.getTokenPrice(
+          "So11111111111111111111111111111111111111112"
+        ); // SOL
         checks.birdeye = true;
       } catch {}
     }
 
     try {
-      await this.dexscreener.getTokenPairs("solana", "So11111111111111111111111111111111111111112");
+      await this.dexscreener.getTokenPairs(
+        "solana",
+        "So11111111111111111111111111111111111111112"
+      );
       checks.dexscreener = true;
     } catch {}
 
