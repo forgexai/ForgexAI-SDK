@@ -14,8 +14,10 @@ pnpm add forgexai-sdk
 
 ## Features
 
-- **Comprehensive Protocol Support**: Interact with major Solana ecosystem protocols including Jupiter, Kamino, Marinade, Raydium, Drift, Tensor, Pyth, Squads, Mayan Finance, Sanctum, Meteora, MarginFi, and Helius
+- **Comprehensive Protocol Support**: Interact with major Solana ecosystem protocols including Jupiter, Kamino, Marinade, Raydium, Drift, Tensor, Pyth, Squads, Mayan Finance, Sanctum, Meteora, MarginFi, Helius, Elusiv, and Solend
 - **Cross-Chain Capabilities**: Execute cross-chain swaps between Solana and other blockchains (Ethereum, BNB Chain, Avalanche, etc.) using Mayan Finance
+- **Privacy Features**: Private transactions and balance protection using Elusiv
+- **Lending & Borrowing**: Access decentralized lending markets through Solend and MarginFi
 - **Wallet Integration**: Simple interfaces for working with Solana wallets
 - **Type Safety**: Full TypeScript support with comprehensive type definitions
 - **Well-Documented**: Clear examples and documentation for all supported features
@@ -94,6 +96,65 @@ const stakeSOL = async () => {
 };
 ```
 
+### Lending with Solend
+
+```typescript
+import { ForgeXSolanaSDK } from "forgexai-sdk";
+import { PublicKey } from "@solana/web3.js";
+
+const lendWithSolend = async () => {
+  // Initialize the SDK with mainnet connection
+  const sdk = ForgeXSolanaSDK.mainnet();
+  
+  // Initialize Solend pools
+  await sdk.solend.initialize();
+  
+  const walletPublicKey = new PublicKey("your-wallet-address");
+  
+  // Get all available reserves
+  const reserves = sdk.solend.getReserves();
+  console.log("Available lending markets:", reserves);
+  
+  // Build a deposit transaction (deposit 100 USDC)
+  const depositAction = await sdk.solend.buildDepositTransaction(
+    100, // amount
+    "USDC", // token symbol
+    walletPublicKey
+  );
+  
+  // Execute the transaction (you need to implement sendTransaction)
+  const signature = await sdk.solend.executeAction(
+    depositAction,
+    async (transaction) => {
+      // Your transaction signing logic here
+      return "transaction-signature";
+    }
+  );
+  
+  console.log("Deposit successful:", signature);
+};
+```
+
+### Privacy with Elusiv
+
+```typescript
+import { ForgeXSolanaSDK } from "forgexai-sdk";
+import { PublicKey } from "@solana/web3.js";
+
+const privateTransfer = async () => {
+  const sdk = ForgeXSolanaSDK.mainnet();
+  
+  const result = await sdk.elusiv.createPrivateTransfer({
+    amount: 1000000, // 1 USDC in lamports
+    tokenMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
+    recipient: new PublicKey("recipient-address"),
+    memo: "Private payment"
+  });
+  
+  console.log("Private transfer successful:", result);
+};
+```
+
 ### Cross-Chain Swap with Mayan Finance
 
 ```typescript
@@ -161,6 +222,12 @@ const crossChainSwap = async () => {
 - **Tensor**: NFT trading
 - **Pyth**: Price oracle data
 - **Squads**: Multisig and DAO tools
+- **Sanctum**: Liquid staking derivatives
+- **Meteora**: Liquidity infrastructure
+- **MarginFi**: Decentralized lending and borrowing
+- **Helius**: Enhanced RPC and webhooks
+- **Elusiv**: Privacy-preserving transactions
+- **Solend**: Decentralized lending protocol
 
 ## Examples
 
@@ -168,6 +235,13 @@ You can find example scripts in the `examples` directory:
 
 - `basic-usage.js` - Simple examples of how to use the SDK
 - `portfolio-analysis.js` - More advanced example showing DeFi portfolio analysis
+- `solend-example.js` - Lending and borrowing with Solend
+- `elusiv-example.js` - Privacy-preserving transactions
+- `marginfi-example.js` - MarginFi lending integration
+- `helius-example.js` - Enhanced RPC and webhook usage
+- `mayan-cross-chain-swap.js` - Cross-chain swaps
+- `meteora-example.js` - Meteora vault interactions
+- `sanctum-example.js` - Liquid staking with Sanctum
 
 To run an example:
 

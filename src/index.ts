@@ -11,6 +11,8 @@ export { SanctumClient } from "./sanctum";
 export { MeteoraClient } from "./meteora";
 export { MarginfiClient } from "./marginfi";
 export { HeliusClient } from "./helius";
+export { ElusivClient } from "./elusiv";
+export { SolendClient } from "./solend";
 export * from "./wallet";
 
 export * from "./utils/connection";
@@ -60,6 +62,22 @@ export type {
   HeliusWebhookConfig,
 } from "./types";
 
+export type {
+  ElusivPrivateTransferParams,
+  ElusivTopUpParams,
+  ElusivWithdrawParams,
+  ElusivBalanceInfo,
+  ElusivTransactionResult,
+  ElusivConfig,
+} from "./elusiv";
+
+export type {
+  SolendLoanHealth,
+  SolendReserveInfo,
+  SolendPosition,
+  InputPoolType,
+} from "./solend";
+
 import { Connection } from "@solana/web3.js";
 import { JupiterClient } from "./jupiter";
 import { KaminoClient } from "./kamino";
@@ -74,6 +92,8 @@ import { SanctumClient } from "./sanctum";
 import { MeteoraClient } from "./meteora";
 import { MarginfiClient } from "./marginfi";
 import { HeliusClient } from "./helius";
+import { ElusivClient } from "./elusiv";
+import { SolendClient } from "./solend";
 import type { SDKConfig, SolanaNetwork } from "./types";
 
 export class ForgeXSolanaSDK {
@@ -91,6 +111,7 @@ export class ForgeXSolanaSDK {
   public meteora: MeteoraClient;
   public marginfi: MarginfiClient;
   public helius: HeliusClient;
+  public solend: SolendClient;
 
   constructor(config: SDKConfig) {
     const endpoint =
@@ -111,8 +132,15 @@ export class ForgeXSolanaSDK {
     this.mayan = new MayanClient(this.connection);
     this.sanctum = new SanctumClient(this.connection, config.apiKeys?.sanctum);
     this.meteora = new MeteoraClient(this.connection, config.apiKeys?.meteora);
-    this.marginfi = new MarginfiClient(this.connection, config.apiKeys?.marginfi);
-    this.helius = new HeliusClient(this.connection, config.apiKeys?.helius || "");
+    this.marginfi = new MarginfiClient(
+      this.connection,
+      config.apiKeys?.marginfi
+    );
+    this.helius = new HeliusClient(
+      this.connection,
+      config.apiKeys?.helius || ""
+    );
+    this.solend = new SolendClient(this.connection);
   }
 
   /**
@@ -266,6 +294,7 @@ export class ForgeXSolanaSDK {
       meteora: false,
       marginfi: false,
       helius: false,
+      solend: false,
     };
 
     try {
@@ -333,6 +362,11 @@ export class ForgeXSolanaSDK {
     try {
       await this.helius.getWebhooks();
       checks.helius = true;
+    } catch {}
+
+    try {
+      await this.solend.initialize();
+      checks.solend = true;
     } catch {}
 
     return {
