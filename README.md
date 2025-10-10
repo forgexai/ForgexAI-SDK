@@ -260,16 +260,6 @@ You can find example scripts in the `examples` directory:
 - `dialect-example.js` - Web3 notifications and messaging
 - `shyft-example.js` - Blockchain data APIs and wallet analytics
 
-To run an example:
-
-```bash
-# First build the SDK
-npm run build
-
-# Then run an example
-node examples/basic-usage.js
-```
-
 ## Development
 
 ```bash
@@ -281,21 +271,6 @@ npm run build
 
 # Run tests
 npm test
-```
-
-## Publishing
-
-To publish the SDK to npm:
-
-```bash
-# Login to npm (only needed once)
-npm login
-
-# Build the package
-npm run build
-
-# Publish to npm
-npm publish
 ```
 
 ## License
