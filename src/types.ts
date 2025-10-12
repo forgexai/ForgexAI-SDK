@@ -169,6 +169,8 @@ export interface SDKConfig {
     helius?: string;
     birdeye?: string;
     shyft?: string;
+    dialect?: string;
+    clockwork?: string;
     crossmint?: {
       apiKey: string;
       jwt?: string;
@@ -293,7 +295,6 @@ export interface MayanTokenInfo {
   coingeckoId?: string;
 }
 
-// Sanctum types
 export interface SanctumLsdInfo {
   token: string;
   mint: string;
@@ -321,7 +322,6 @@ export interface SanctumSwapResult {
   expectedOutAmount: string;
 }
 
-// Meteora types
 export interface MeteoraVault {
   address: string;
   name: string;
@@ -361,7 +361,6 @@ export interface MeteoraDepositResult {
   blockhash: string;
 }
 
-// MarginFi types
 export interface MarginfiPosition {
   account: string;
   owner: string;
@@ -403,7 +402,6 @@ export interface MarginfiAction {
   expectedBalance?: string;
 }
 
-// Helius types
 export interface HeliusNftMetadata {
   mint: string;
   name: string;

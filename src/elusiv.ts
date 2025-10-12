@@ -76,13 +76,11 @@ export class ElusivClient {
     try {
       this.keypair = keypair;
 
-      // Generate seed for Elusiv instance
       const seed = await sign(
         Buffer.from(SEED_MESSAGE, "utf-8"),
         keypair.secretKey.slice(0, 32)
       );
 
-      // Create Elusiv instance
       this.elusivInstance = await Elusiv.getElusivInstance(
         seed,
         keypair.publicKey,
@@ -138,12 +136,10 @@ export class ElusivClient {
       const decimals = tokenInfo.decimals;
       const divisor = BigInt(10 ** decimals);
 
-      // Get private balance
       const privateBalance = await this.elusivInstance.getLatestPrivateBalance(
         token
       );
 
-      // Get public balance
       let publicBalance = BigInt(0);
       if (token === "LAMPORTS") {
         publicBalance = BigInt(
@@ -168,7 +164,6 @@ export class ElusivClient {
           );
           publicBalance = BigInt(tokenAccount.value.amount);
         } catch {
-          // ATA doesn't exist or no balance
           publicBalance = BigInt(0);
         }
       }
@@ -219,7 +214,7 @@ export class ElusivClient {
       return {
         signature: result.signature,
         explorerUrl: this.getExplorerUrl(result.signature),
-        isPrivate: false, // Top-up is a public transaction
+        isPrivate: false,
       };
     } catch (error) {
       throw new Error(`Failed to top up private balance: ${error}`);
@@ -240,7 +235,6 @@ export class ElusivClient {
       const tokenInfo = this.getTokenInfo(params.token);
       const lamportAmount = params.amount * 10 ** tokenInfo.decimals;
 
-      // Check private balance
       const privateBalance = await this.elusivInstance.getLatestPrivateBalance(
         params.token
       );
@@ -288,7 +282,6 @@ export class ElusivClient {
       const tokenInfo = this.getTokenInfo(params.token);
       const lamportAmount = params.amount * 10 ** tokenInfo.decimals;
 
-      // Check private balance
       const privateBalance = await this.elusivInstance.getLatestPrivateBalance(
         params.token
       );
@@ -402,7 +395,6 @@ export class ElusivClient {
       const lamportAmount = amount * 10 ** tokenInfo.decimals;
 
       if (token === "LAMPORTS") {
-        // Airdrop SOL
         const signature = await this.connection.requestAirdrop(
           this.keypair.publicKey,
           lamportAmount
@@ -410,7 +402,6 @@ export class ElusivClient {
         await this.connection.confirmTransaction(signature);
         console.log(`Airdropped ${amount} SOL`);
       } else {
-        // Airdrop SPL token
         const mintAddress = tokenInfo.mintDevnet;
         const ata = await createAssociatedTokenAccountIdempotent(
           this.connection,

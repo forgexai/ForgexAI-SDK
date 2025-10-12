@@ -121,7 +121,6 @@ export class BirdeyeClient {
     }
   }
 
-  // ========== TRADES ENDPOINTS ==========
   async getTokenTrades(
     tokenAddress: string,
     txType?: string,
@@ -202,7 +201,6 @@ export class BirdeyeClient {
     }
   }
 
-  // ========== TOKEN ENDPOINTS ==========
   async getTokenList(
     sortBy?: string,
     sortType?: string,
@@ -247,9 +245,12 @@ export class BirdeyeClient {
 
   async getTokenMetadata(tokenAddress: string) {
     try {
-      const response = await this.client.get(`/defi/v3/token/meta-data/single`, {
-        params: { address: tokenAddress },
-      });
+      const response = await this.client.get(
+        `/defi/v3/token/meta-data/single`,
+        {
+          params: { address: tokenAddress },
+        }
+      );
       return response.data.data;
     } catch (error: any) {
       throw new Error(`Failed to get token metadata: ${error.message}`);
@@ -258,12 +259,17 @@ export class BirdeyeClient {
 
   async getMultipleTokenMetadata(tokenAddresses: string[]) {
     try {
-      const response = await this.client.get(`/defi/v3/token/meta-data/multiple`, {
-        params: { list_address: tokenAddresses.join(",") },
-      });
+      const response = await this.client.get(
+        `/defi/v3/token/meta-data/multiple`,
+        {
+          params: { list_address: tokenAddresses.join(",") },
+        }
+      );
       return response.data.data;
     } catch (error: any) {
-      throw new Error(`Failed to get multiple token metadata: ${error.message}`);
+      throw new Error(
+        `Failed to get multiple token metadata: ${error.message}`
+      );
     }
   }
 
@@ -280,9 +286,12 @@ export class BirdeyeClient {
 
   async getTokenTradeData(tokenAddress: string) {
     try {
-      const response = await this.client.get(`/defi/v3/token/trade-data/single`, {
-        params: { address: tokenAddress },
-      });
+      const response = await this.client.get(
+        `/defi/v3/token/trade-data/single`,
+        {
+          params: { address: tokenAddress },
+        }
+      );
       return response.data.data;
     } catch (error: any) {
       throw new Error(`Failed to get token trade data: ${error.message}`);
@@ -310,11 +319,7 @@ export class BirdeyeClient {
     }
   }
 
-  async getTopTraders(
-    tokenAddress: string,
-    offset?: number,
-    limit?: number
-  ) {
+  async getTopTraders(tokenAddress: string, offset?: number, limit?: number) {
     try {
       const response = await this.client.get(`/defi/v2/tokens/top_traders`, {
         params: {
@@ -361,11 +366,7 @@ export class BirdeyeClient {
     }
   }
 
-  async getTokenHolders(
-    tokenAddress: string,
-    offset?: number,
-    limit?: number
-  ) {
+  async getTokenHolders(tokenAddress: string, offset?: number, limit?: number) {
     try {
       const response = await this.client.get(`/defi/v3/token/holder`, {
         params: {
@@ -380,11 +381,7 @@ export class BirdeyeClient {
     }
   }
 
-  // ========== WALLET ENDPOINTS ==========
-  async getWalletTokenBalance(
-    walletAddress: string,
-    tokenAddress?: string
-  ) {
+  async getWalletTokenBalance(walletAddress: string, tokenAddress?: string) {
     try {
       const response = await this.client.get(`/v1/wallet/token_balance`, {
         params: {
@@ -413,7 +410,9 @@ export class BirdeyeClient {
       });
       return response.data.data;
     } catch (error: any) {
-      throw new Error(`Failed to get wallet transaction history: ${error.message}`);
+      throw new Error(
+        `Failed to get wallet transaction history: ${error.message}`
+      );
     }
   }
 
@@ -428,10 +427,7 @@ export class BirdeyeClient {
     }
   }
 
-  async getWalletNetWorthChart(
-    walletAddress: string,
-    timeframe?: string
-  ) {
+  async getWalletNetWorthChart(walletAddress: string, timeframe?: string) {
     try {
       const response = await this.client.get(`/wallet/v2/net-worth`, {
         params: {
@@ -445,10 +441,7 @@ export class BirdeyeClient {
     }
   }
 
-  async getWalletPnL(
-    walletAddress: string,
-    tokenAddress?: string
-  ) {
+  async getWalletPnL(walletAddress: string, tokenAddress?: string) {
     try {
       const response = await this.client.get(`/wallet/v2/pnl`, {
         params: {
@@ -462,7 +455,6 @@ export class BirdeyeClient {
     }
   }
 
-  // ========== PAIR ENDPOINTS ==========
   async getPairOverview(pairAddress: string) {
     try {
       const response = await this.client.get(`/defi/v3/pair/overview/single`, {
@@ -476,16 +468,18 @@ export class BirdeyeClient {
 
   async getMultiplePairOverview(pairAddresses: string[]) {
     try {
-      const response = await this.client.get(`/defi/v3/pair/overview/multiple`, {
-        params: { list_address: pairAddresses.join(",") },
-      });
+      const response = await this.client.get(
+        `/defi/v3/pair/overview/multiple`,
+        {
+          params: { list_address: pairAddresses.join(",") },
+        }
+      );
       return response.data.data;
     } catch (error: any) {
       throw new Error(`Failed to get multiple pair overview: ${error.message}`);
     }
   }
 
-  // ========== SEARCH & UTILS ==========
   async searchTokens(query: string, limit?: number) {
     try {
       const response = await this.client.get(`/defi/v3/search`, {
@@ -518,7 +512,6 @@ export class BirdeyeClient {
     }
   }
 
-  // ========== PRICE VOLUME ENDPOINTS ==========
   async getPriceVolume(tokenAddress: string, timeframe?: string) {
     try {
       const response = await this.client.get(`/defi/price_volume/single`, {
@@ -533,10 +526,7 @@ export class BirdeyeClient {
     }
   }
 
-  async getHistoricalPriceByUnix(
-    tokenAddress: string,
-    unixTime: number
-  ) {
+  async getHistoricalPriceByUnix(tokenAddress: string, unixTime: number) {
     try {
       const response = await this.client.get(`/defi/historical_price_unix`, {
         params: {
@@ -546,11 +536,12 @@ export class BirdeyeClient {
       });
       return response.data.data;
     } catch (error: any) {
-      throw new Error(`Failed to get historical price by unix: ${error.message}`);
+      throw new Error(
+        `Failed to get historical price by unix: ${error.message}`
+      );
     }
   }
 
-  // ========== OHLCV ADDITIONAL ENDPOINTS ==========
   async getOHLCVPair(
     baseAddress: string,
     quoteAddress: string,

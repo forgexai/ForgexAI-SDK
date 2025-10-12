@@ -9,8 +9,6 @@ export class ShyftService {
     this.shyft = new ShyftSdk({ apiKey, network });
   }
 
-  // ============ Wallet APIs ============
-
   /**
    * Get wallet balance
    * @param wallet - Wallet address
@@ -119,8 +117,6 @@ export class ShyftService {
       throw new Error(`Failed to fetch transaction history: ${error.message}`);
     }
   }
-
-  // ============ NFT APIs ============
 
   /**
    * Get NFT by mint address
@@ -240,7 +236,6 @@ export class ShyftService {
     }
   }
 
-  // ============ Compressed NFT APIs ============
   /**
    * Create merkle tree for compressed NFTs
    * @param creatorWallet - Creator wallet address
@@ -368,8 +363,6 @@ export class ShyftService {
     }
   }
 
-  // ============ Token APIs ============
-
   /**
    * Get token information
    * @param tokenAddress - Token mint address
@@ -491,8 +484,6 @@ export class ShyftService {
     }
   }
 
-  // ============ Marketplace APIs ============
-
   /**
    * Create a marketplace
    * @param creatorWallet - Creator wallet address
@@ -597,8 +588,6 @@ export class ShyftService {
     }
   }
 
-  // ============ Storage APIs ============
-
   /**
    * Upload asset to IPFS
    * @param file - File to upload
@@ -635,8 +624,6 @@ export class ShyftService {
     }
   }
 
-  // ============ Transaction Relayer APIs ============
-
   /**
    * Get or create transaction relayer
    * @returns Relayer wallet address
@@ -666,8 +653,6 @@ export class ShyftService {
       throw new Error(`Failed to sign with relayer: ${error.message}`);
     }
   }
-
-  // ============ RPC/DAS APIs ============
 
   /**
    * Get asset by ID (DAS API)

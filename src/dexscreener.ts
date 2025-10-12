@@ -120,8 +120,6 @@ export class DexScreenerClient {
     }
   }
 
-  // ========== NEW API ENDPOINTS ==========
-  
   /**
    * Get multiple pairs by token addresses (up to 30 addresses)
    * @param chainId - The blockchain chain ID (e.g., 'solana', 'ethereum')
@@ -179,7 +177,9 @@ export class DexScreenerClient {
       );
       return response.data;
     } catch (error: any) {
-      throw new Error(`Failed to get pairs by chain and address: ${error.message}`);
+      throw new Error(
+        `Failed to get pairs by chain and address: ${error.message}`
+      );
     }
   }
 
@@ -191,11 +191,13 @@ export class DexScreenerClient {
   async getTokenOrders(
     chainId: string,
     tokenAddress: string
-  ): Promise<Array<{
-    type: string;
-    status: string;
-    paymentTimestamp: number;
-  }>> {
+  ): Promise<
+    Array<{
+      type: string;
+      status: string;
+      paymentTimestamp: number;
+    }>
+  > {
     try {
       const response = await axios.get(
         `${DEXSCREENER_API}/orders/v1/${chainId}/${tokenAddress}`
@@ -242,8 +244,6 @@ export class DexScreenerClient {
     }
   }
 
-  // ========== UTILITY METHODS ==========
-  
   /**
    * Get pairs filtered by minimum liquidity
    * @param chainId - The blockchain chain ID
@@ -257,9 +257,11 @@ export class DexScreenerClient {
   ): Promise<DexPair[]> {
     try {
       const pairs = await this.getTokenPairs(chainId, tokenAddress);
-      return pairs.filter(pair => pair.liquidity.usd >= minLiquidityUsd);
+      return pairs.filter((pair) => pair.liquidity.usd >= minLiquidityUsd);
     } catch (error: any) {
-      throw new Error(`Failed to get pairs with min liquidity: ${error.message}`);
+      throw new Error(
+        `Failed to get pairs with min liquidity: ${error.message}`
+      );
     }
   }
 
@@ -298,8 +300,8 @@ export class DexScreenerClient {
     try {
       const pairs = await this.getTokenPairs(chainId, tokenAddress);
       if (pairs.length === 0) return null;
-      
-      return pairs.reduce((best, current) => 
+
+      return pairs.reduce((best, current) =>
         current.liquidity.usd > best.liquidity.usd ? current : best
       );
     } catch (error: any) {
@@ -320,8 +322,9 @@ export class DexScreenerClient {
   ): Promise<DexPair[]> {
     try {
       const pairs = await this.getTokenPairs(chainId, tokenAddress);
-      return pairs.filter(pair => {
-        const totalTxns = (pair.txns.m5?.buys || 0) + (pair.txns.m5?.sells || 0);
+      return pairs.filter((pair) => {
+        const totalTxns =
+          (pair.txns.m5?.buys || 0) + (pair.txns.m5?.sells || 0);
         return totalTxns >= minTxns;
       });
     } catch (error: any) {

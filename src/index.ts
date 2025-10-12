@@ -170,7 +170,6 @@ export class ForgeXSolanaSDK {
     );
     this.solend = new SolendClient(this.connection);
 
-    // Initialize optional services with API keys
     if (config.apiKeys?.birdeye) {
       this.birdeye = new BirdeyeClient(config.apiKeys.birdeye);
     }
@@ -183,11 +182,18 @@ export class ForgeXSolanaSDK {
       this.crossmint = new CrossmintWalletService(config.apiKeys.crossmint);
     }
 
-    // Initialize services that don't require API keys
     this.dexscreener = new DexScreenerClient();
-
-    // Note: Clockwork and Dialect require special initialization
-    // They can be initialized later with specific configurations
+    if (config.apiKeys?.clockwork) {
+      this.clockwork = new ClockworkService("mainnet-beta");
+    }
+    if (config.apiKeys?.dialect) {
+      this.dialect = new DialectService(
+        undefined,
+        undefined,
+        undefined,
+        config.apiKeys.dialect
+      );
+    }
   }
 
   /**
@@ -457,7 +463,7 @@ export class ForgeXSolanaSDK {
       try {
         await this.birdeye.getTokenPrice(
           "So11111111111111111111111111111111111111112"
-        ); // SOL
+        );
         checks.birdeye = true;
       } catch {}
     }
@@ -479,7 +485,6 @@ export class ForgeXSolanaSDK {
 
     if (this.crossmint) {
       try {
-        // Crossmint doesn't have a simple health check endpoint
         checks.crossmint = true;
       } catch {}
     }

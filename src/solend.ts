@@ -17,7 +17,6 @@ import {
 import BigNumber from "bignumber.js";
 import BN from "bn.js";
 
-// Define missing types that aren't exported
 export interface InputPoolType {
   address: string;
   owner: string;
@@ -77,11 +76,11 @@ export class SolendClient {
       this.pools = await fetchPools(
         [],
         this.connection,
-        null as any, // switchboard program
-        "So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo", // mainnet program ID
+        null as any,
+        "So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo",
         await this.connection.getSlot(),
-        false, // skipPrices
-        false // debug
+        false,
+        false
       );
       console.log("Initialized Solend with pools:", Object.keys(this.pools));
     } catch (error) {
@@ -156,7 +155,6 @@ export class SolendClient {
         false
       );
 
-      // For now, return the raw data - you'd need token metadata for proper formatting
       return rawWalletData.userAssociatedTokenAccounts.filter(
         (account) => account !== null
       );

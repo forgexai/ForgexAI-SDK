@@ -193,14 +193,11 @@ export class CrossmintWalletService {
   }
 }
 
-// Example usage
 export async function exampleUsage() {
-  // Initialize the service
   const walletService = new CrossmintWalletService({
     apiKey: process.env.CROSSMINT_API_KEY!,
   });
 
-  // Create or get a wallet
   const wallet = await walletService.getOrCreateWallet({
     chain: "solana",
     email: "user@example.com",
@@ -208,12 +205,10 @@ export async function exampleUsage() {
 
   console.log("Wallet Address:", walletService.getWalletAddress(wallet));
 
-  // Get balances
   const balances = await walletService.getBalances(wallet);
   console.log("Native Token:", balances.nativeToken);
   console.log("USDC:", balances.usdc);
 
-  // Transfer tokens
   const transfer = await walletService.transfer(wallet, {
     recipient: "recipient-address",
     token: "usdc",
@@ -221,23 +216,19 @@ export async function exampleUsage() {
   });
   console.log("Transfer:", transfer.explorerLink);
 
-  // Get activity
   const activity = await walletService.getActivity(wallet);
   console.log("Activity Events:", activity.totalEvents);
 
-  // Add delegated signer
   const signers = await walletService.addDelegatedSigner(wallet, {
     signer: "signer-address",
   });
   console.log("Delegated Signers:", signers);
 
-  // Send custom Solana transaction
   const solTx = await walletService.sendSolanaTransaction(wallet, {
     transaction: "serialized-transaction",
   });
   console.log("Solana Tx:", solTx.explorerLink);
 
-  // Send custom EVM transaction
   const evmTx = await walletService.sendEVMTransaction(wallet, {
     transaction: "serialized-transaction",
   });
