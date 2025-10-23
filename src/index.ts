@@ -393,7 +393,7 @@ export class ForgeXSolanaSDK {
     } catch {}
 
     try {
-      await this.jupiter.getTokenList();
+      await this.jupiter.getAllTokensLegacy();
       checks.jupiter = true;
     } catch {}
 
