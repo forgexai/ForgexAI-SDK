@@ -1,10 +1,10 @@
-import axios from "axios";
+import axios, { AxiosRequestConfig } from "axios";
 import { Connection } from "@solana/web3.js";
 
-const JUPITER_API_V6 = "https://quote-api.jup.ag/v6";
-const JUPITER_PRICE_API = "https://price.jup.ag/v4";
-const JUPITER_TOKEN_API = "https://token.jup.ag";
+//---------------------- CONSTANTS ---------------------
+const JUPITER_BASE = "https://lite-api.jup.ag";
 
+//---------------------- COMMON TYPES ------------------
 export interface JupiterSwapQuote {
   inputMint: string;
   inAmount: string;
@@ -13,10 +13,7 @@ export interface JupiterSwapQuote {
   otherAmountThreshold: string;
   swapMode: string;
   slippageBps: number;
-  platformFee?: {
-    amount: string;
-    feeBps: number;
-  };
+  platformFee?: { amount: string; feeBps: number };
   priceImpactPct: string;
   routePlan: Array<{
     swapInfo: {
@@ -34,13 +31,11 @@ export interface JupiterSwapQuote {
   contextSlot?: number;
   timeTaken?: number;
 }
-
 export interface JupiterSwapResult {
   swapTransaction: string;
   lastValidBlockHeight?: number;
   prioritizationFeeLamports?: number;
 }
-
 export interface JupiterTokenInfo {
   address: string;
   chainId: number;
@@ -54,7 +49,6 @@ export interface JupiterTokenInfo {
   freeze_authority?: string;
   mint_authority?: string;
 }
-
 export interface JupiterPriceData {
   [mintAddress: string]: {
     id: string;
@@ -65,263 +59,258 @@ export interface JupiterPriceData {
   };
 }
 
-export interface JupiterSwapParams {
-  inputMint: string;
-  outputMint: string;
-  amount: number;
-  slippageBps?: number;
-  onlyDirectRoutes?: boolean;
-  asLegacyTransaction?: boolean;
-  platformFeeBps?: number;
-  maxAccounts?: number;
-}
+//---------------- COMMON TOKEN MINTS EXPORTED ----------
+export const COMMON_TOKENS = {
+  SOL: "So11111111111111111111111111111111111111112",
+  USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  USDT: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+  RAY: "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
+  SRM: "SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt",
+};
 
-export interface JupiterTransactionParams {
-  quoteResponse: JupiterSwapQuote;
-  userPublicKey: string;
-  wrapAndUnwrapSol?: boolean;
-  useSharedAccounts?: boolean;
-  feeAccount?: string;
-  computeUnitPriceMicroLamports?: string | number;
-  prioritizationFeeLamports?: string | number;
-  asLegacyTransaction?: boolean;
-  useTokenLedger?: boolean;
-  dynamicComputeUnitLimit?: boolean;
-}
-
+//--------------------- MAIN CLASS ----------------------
 export class JupiterClient {
   constructor(private connection: Connection) {}
 
-  /**
-   * Get swap quote from Jupiter aggregator
-   */
-  async getSwapQuote(
-    inputMint: string,
-    outputMint: string,
-    amount: number,
-    options: {
-      slippageBps?: number;
-      onlyDirectRoutes?: boolean;
-      asLegacyTransaction?: boolean;
-      platformFeeBps?: number;
-      maxAccounts?: number;
-    } = {}
-  ): Promise<JupiterSwapQuote> {
-    try {
-      const {
-        slippageBps = 50,
-        onlyDirectRoutes = false,
-        asLegacyTransaction = false,
-        platformFeeBps,
-        maxAccounts,
-      } = options;
-
-      const params = new URLSearchParams({
-        inputMint,
-        outputMint,
-        amount: amount.toString(),
-        slippageBps: slippageBps.toString(),
-        onlyDirectRoutes: onlyDirectRoutes.toString(),
-        asLegacyTransaction: asLegacyTransaction.toString(),
-      });
-
-      if (platformFeeBps) {
-        params.append("platformFeeBps", platformFeeBps.toString());
-      }
-      if (maxAccounts) {
-        params.append("maxAccounts", maxAccounts.toString());
-      }
-
-      const response = await axios.get<JupiterSwapQuote>(
-        `${JUPITER_API_V6}/quote?${params.toString()}`
-      );
-
-      if (!response.data) {
-        throw new Error("No quote data received from Jupiter");
-      }
-
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        `Failed to get Jupiter quote: ${
-          error.response?.data?.error || error.message
-        }`
-      );
-    }
+  // -------- ULTRA SWAP -------------
+  async getUltraOrder(params: {
+    inputMint: string;
+    outputMint: string;
+    amount: number;
+    userPublicKey?: string;
+    slippageBps?: number;
+    swapMode?: "ExactIn" | "ExactOut";
+  }): Promise<any> {
+    return (await axios.get(`${JUPITER_BASE}/ultra/v1/order`, { params })).data;
+  }
+  async executeUltraOrder(tx: string): Promise<any> {
+    return (await axios.post(`${JUPITER_BASE}/ultra/v1/execute`, { tx })).data;
+  }
+  async getUltraHoldings(address: string): Promise<any> {
+    return (
+      await axios.get(`${JUPITER_BASE}/ultra/v1/holdings`, {
+        params: { address },
+      })
+    ).data;
+  }
+  async getUltraShield(mint: string): Promise<any> {
+    return (
+      await axios.get(`${JUPITER_BASE}/ultra/v1/shield`, { params: { mint } })
+    ).data;
+  }
+  async searchUltraTokens(query: string): Promise<any> {
+    return (
+      await axios.get(`${JUPITER_BASE}/ultra/v1/search`, { params: { query } })
+    ).data;
+  }
+  async getUltraRouters(): Promise<any> {
+    return (await axios.get(`${JUPITER_BASE}/ultra/v1/routers`)).data;
   }
 
-  /**
-   * Build swap transaction
-   */
-  async buildSwapTransaction(
-    quote: JupiterSwapQuote,
-    userPublicKey: string,
-    options: {
-      wrapAndUnwrapSol?: boolean;
-      useSharedAccounts?: boolean;
-      feeAccount?: string;
-      computeUnitPriceMicroLamports?: string | number;
-      prioritizationFeeLamports?: string | number;
-      asLegacyTransaction?: boolean;
-      useTokenLedger?: boolean;
-      dynamicComputeUnitLimit?: boolean;
-    } = {}
-  ): Promise<JupiterSwapResult> {
-    try {
-      const {
-        wrapAndUnwrapSol = true,
-        useSharedAccounts = true,
-        feeAccount,
-        computeUnitPriceMicroLamports,
-        prioritizationFeeLamports = "auto",
-        asLegacyTransaction = false,
-        useTokenLedger = false,
-        dynamicComputeUnitLimit = true,
-      } = options;
-
-      const requestBody: JupiterTransactionParams = {
-        quoteResponse: quote,
-        userPublicKey,
-        wrapAndUnwrapSol,
-        useSharedAccounts,
-        dynamicComputeUnitLimit,
-        prioritizationFeeLamports,
-        asLegacyTransaction,
-        useTokenLedger,
-      };
-
-      if (feeAccount) {
-        requestBody.feeAccount = feeAccount;
-      }
-      if (computeUnitPriceMicroLamports) {
-        requestBody.computeUnitPriceMicroLamports =
-          computeUnitPriceMicroLamports;
-      }
-
-      const response = await axios.post<JupiterSwapResult>(
-        `${JUPITER_API_V6}/swap`,
-        requestBody
-      );
-
-      if (!response.data) {
-        throw new Error("No swap transaction data received from Jupiter");
-      }
-
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        `Failed to build swap transaction: ${
-          error.response?.data?.error || error.message
-        }`
-      );
-    }
+  // -------- LEGACY SWAP -----------
+  async getSwapQuote(params: {
+    inputMint: string;
+    outputMint: string;
+    amount: number;
+    slippageBps?: number;
+    swapMode?: "ExactIn" | "ExactOut";
+    restrictIntermediateTokens?: boolean;
+    onlyDirectRoutes?: boolean;
+    dexes?: string[];
+    excludeDexes?: string[];
+    platformFeeBps?: number;
+    maxAccounts?: number;
+    instructionVersion?: "V1" | "V2";
+  }): Promise<JupiterSwapQuote> {
+    return (await axios.get(`${JUPITER_BASE}/swap/v1/quote`, { params })).data;
+  }
+  async buildSwapTransaction(payload: {
+    quoteResponse: JupiterSwapQuote;
+    userPublicKey: string;
+    wrapAndUnwrapSol?: boolean;
+    useSharedAccounts?: boolean;
+    feeAccount?: string;
+    computeUnitPriceMicroLamports?: string | number;
+    prioritizationFeeLamports?: number;
+    asLegacyTransaction?: boolean;
+    useTokenLedger?: boolean;
+    dynamicComputeUnitLimit?: boolean;
+  }): Promise<JupiterSwapResult> {
+    return (await axios.post(`${JUPITER_BASE}/swap/v1/swap`, payload)).data;
+  }
+  async getSwapInstructions(payload: any): Promise<any> {
+    return (
+      await axios.post(`${JUPITER_BASE}/swap/v1/swap-instructions`, payload)
+    ).data;
+  }
+  async getDexLabels(): Promise<any> {
+    return (await axios.get(`${JUPITER_BASE}/swap/v1/program-id-to-label`))
+      .data;
   }
 
-  /**
-   * Get token price from Jupiter
-   */
+  // --------- LEND (BETA) ----------
+  async lendEarn(params: any): Promise<any> {
+    return (await axios.get(`${JUPITER_BASE}/lend/v1/earn`, { params })).data;
+  }
+
+  // ------ TRIGGER ORDERS ----------
+  async createTriggerOrder(payload: any): Promise<any> {
+    return (await axios.post(`${JUPITER_BASE}/trigger/v1/createOrder`, payload))
+      .data;
+  }
+  async executeTriggerOrder(payload: any): Promise<any> {
+    return (await axios.post(`${JUPITER_BASE}/trigger/v1/execute`, payload))
+      .data;
+  }
+  async cancelTriggerOrder(payload: any): Promise<any> {
+    return (await axios.post(`${JUPITER_BASE}/trigger/v1/cancelOrder`, payload))
+      .data;
+  }
+  async cancelBatchTriggerOrders(payload: any): Promise<any> {
+    return (
+      await axios.post(`${JUPITER_BASE}/trigger/v1/cancelOrders`, payload)
+    ).data;
+  }
+  async getTriggerOrders(address: string): Promise<any> {
+    return (
+      await axios.get(`${JUPITER_BASE}/trigger/v1/getTriggerOrders`, {
+        params: { address },
+      })
+    ).data;
+  }
+
+  // ------- RECURRING ORDERS -------
+  async createRecurringOrder(payload: any): Promise<any> {
+    return (
+      await axios.post(`${JUPITER_BASE}/recurring/v1/createOrder`, payload)
+    ).data;
+  }
+  async executeRecurringOrder(payload: any): Promise<any> {
+    return (await axios.post(`${JUPITER_BASE}/recurring/v1/execute`, payload))
+      .data;
+  }
+  async cancelRecurringOrder(payload: any): Promise<any> {
+    return (
+      await axios.post(`${JUPITER_BASE}/recurring/v1/cancelOrder`, payload)
+    ).data;
+  }
+  async getRecurringOrders(address: string): Promise<any> {
+    return (
+      await axios.get(`${JUPITER_BASE}/recurring/v1/getRecurringOrders`, {
+        params: { address },
+      })
+    ).data;
+  }
+
+  // ----------- TOKENS -------------
+  async searchTokens(query: string): Promise<JupiterTokenInfo[]> {
+    return (
+      await axios.get(`${JUPITER_BASE}/tokens/v2/search`, { params: { query } })
+    ).data;
+  }
+  async getTokensByCategory(category: string): Promise<JupiterTokenInfo[]> {
+    return (await axios.get(`${JUPITER_BASE}/tokens/v2/mints/${category}`))
+      .data;
+  }
+  async getAllTokensLegacy(): Promise<JupiterTokenInfo[]> {
+    return (await axios.get(`${JUPITER_BASE}/tokens/v2/mints`)).data;
+  }
+
+  // ------------ PRICE --------------
   async getTokenPrice(
     tokenMint: string,
-    vsToken: string = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+    vsToken: string = COMMON_TOKENS.USDC
   ): Promise<{ price: number; mintSymbol: string; vsTokenSymbol: string }> {
-    try {
-      const response = await axios.get<JupiterPriceData>(
-        `${JUPITER_PRICE_API}/price?ids=${tokenMint}&vsToken=${vsToken}`
-      );
-
-      const data = response.data[tokenMint];
-
-      if (!data) {
-        throw new Error("Token price not found");
-      }
-
-      return {
-        price: data.price,
-        mintSymbol: data.mintSymbol || tokenMint,
-        vsTokenSymbol: data.vsTokenSymbol,
-      };
-    } catch (error: any) {
-      throw new Error(`Failed to get token price: ${error.message}`);
-    }
+    const res = await axios.get(`${JUPITER_BASE}/price/v3/price`, {
+      params: { ids: tokenMint, vsToken },
+    });
+    const data = res.data[tokenMint];
+    return {
+      price: data.price,
+      mintSymbol: data.mintSymbol || tokenMint,
+      vsTokenSymbol: data.vsTokenSymbol,
+    };
   }
-
-  /**
-   * Get multiple token prices
-   */
   async getMultipleTokenPrices(
     tokenMints: string[],
-    vsToken: string = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+    vsToken: string = COMMON_TOKENS.USDC
   ): Promise<JupiterPriceData> {
-    try {
-      const ids = tokenMints.join(",");
-      const response = await axios.get<{ data: JupiterPriceData }>(
-        `${JUPITER_PRICE_API}/price?ids=${ids}&vsToken=${vsToken}`
-      );
-      return response.data.data;
-    } catch (error: any) {
-      throw new Error(`Failed to get token prices: ${error.message}`);
-    }
+    return (
+      await axios.get(`${JUPITER_BASE}/price/v3/price`, {
+        params: { ids: tokenMints.join(","), vsToken },
+      })
+    ).data;
+  }
+  async getTWAP(
+    tokenMint: string,
+    vsToken: string = COMMON_TOKENS.USDC
+  ): Promise<any> {
+    return (
+      await axios.get(`${JUPITER_BASE}/price/v3/twap`, {
+        params: { ids: tokenMint, vsToken },
+      })
+    ).data;
   }
 
-  /**
-   * Get all tokens available on Jupiter
-   */
-  async getTokenList(): Promise<JupiterTokenInfo[]> {
-    try {
-      const response = await axios.get<JupiterTokenInfo[]>(
-        `${JUPITER_TOKEN_API}/all`
-      );
-      return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to get token list: ${error.message}`);
-    }
+  // ------------- SEND ---------------
+  async craftSend(payload: any): Promise<any> {
+    return (await axios.post(`${JUPITER_BASE}/send/v1/craft-send`, payload))
+      .data;
+  }
+  async craftClawback(payload: any): Promise<any> {
+    return (await axios.post(`${JUPITER_BASE}/send/v1/craft-clawback`, payload))
+      .data;
+  }
+  async getPendingInvites(address: string): Promise<any> {
+    return (
+      await axios.get(`${JUPITER_BASE}/send/v1/pending-invites`, {
+        params: { address },
+      })
+    ).data;
+  }
+  async getInviteHistory(address: string): Promise<any> {
+    return (
+      await axios.get(`${JUPITER_BASE}/send/v1/invite-history`, {
+        params: { address },
+      })
+    ).data;
   }
 
-  /**
-   * Get strict token list (more curated)
-   */
-  async getStrictTokenList(): Promise<JupiterTokenInfo[]> {
-    try {
-      const response = await axios.get<JupiterTokenInfo[]>(
-        `${JUPITER_TOKEN_API}/strict`
-      );
-      return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to get strict token list: ${error.message}`);
-    }
+  // ------------ STUDIO (DBC) -----------
+  async studioCreateDBCPool(payload: any): Promise<any> {
+    return (
+      await axios.post(`${JUPITER_BASE}/studio/v1/dbc-pool-create-tx`, payload)
+    ).data;
+  }
+  async studioSubmitPool(payload: any): Promise<any> {
+    return (
+      await axios.post(`${JUPITER_BASE}/studio/v1/dbc-pool-submit`, payload)
+    ).data;
+  }
+  async studioGetAddressesByMint(mint: string): Promise<any> {
+    return (
+      await axios.get(`${JUPITER_BASE}/studio/v1/dbc-pool-addresses-by-mint`, {
+        params: { mint },
+      })
+    ).data;
+  }
+  async studioClaimFee(payload: any): Promise<any> {
+    return (await axios.post(`${JUPITER_BASE}/studio/v1/dbc-fee`, payload))
+      .data;
+  }
+  async studioCreateFeeTx(payload: any): Promise<any> {
+    return (
+      await axios.post(`${JUPITER_BASE}/studio/v1/dbc-fee-create-tx`, payload)
+    ).data;
   }
 
-  /**
-   * Get route map for available swaps
-   */
-  async getRouteMap(): Promise<Record<string, string[]>> {
-    try {
-      const response = await axios.get<Record<string, string[]>>(
-        `${JUPITER_API_V6}/indexed-route-map`
-      );
-      return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to get route map: ${error.message}`);
-    }
-  }
-
-  /**
-   * Utility method to convert amount to raw amount considering token decimals
-   */
+  // ------------------- UTILITY METHODS ------------------
   static toRawAmount(amount: number, decimals: number): number {
     return Math.floor(amount * Math.pow(10, decimals));
   }
-
-  /**
-   * Utility method to convert raw amount to human readable amount
-   */
   static fromRawAmount(rawAmount: string | number, decimals: number): number {
     return Number(rawAmount) / Math.pow(10, decimals);
   }
-
-  /**
-   * Calculate price impact percentage
-   */
   static calculatePriceImpact(
     inputAmount: number,
     outputAmount: number,
