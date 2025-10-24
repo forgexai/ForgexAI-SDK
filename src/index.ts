@@ -46,7 +46,6 @@ export type { JupiterTokenInfo } from "./jupiter";
 export type { KaminoLoanHealth } from "./kamino";
 export type { TensorFloorPrice, TensorCollectionStats } from "./tensor";
 export type { MarinadeStakingInfo } from "./marinade";
-export type { DriftPerpPosition } from "./drift";
 export type { PythPriceData } from "./pyth";
 export type { SquadsMultisig, SquadsProposal } from "./squads";
 export type {
@@ -308,7 +307,7 @@ export class ForgeXSolanaSDK {
           ),
           this.kamino.getLoanHealth(walletAddress).catch(() => null),
           this.marinade.getStakingAPY("mSOL").catch(() => null),
-          this.drift.getPositionDetails(walletAddress).catch(() => []),
+          this.drift.getPositions(walletAddress).catch(() => []),
         ]);
 
       return {
@@ -413,7 +412,7 @@ export class ForgeXSolanaSDK {
     } catch {}
 
     try {
-      await this.drift.getAllMarkets();
+      await this.drift.getMarkets();
       checks.drift = true;
     } catch {}
 
