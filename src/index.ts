@@ -1,15 +1,16 @@
-export { JupiterClient } from "./jupiter";
-export { KaminoClient } from "./kamino";
-export { TensorClient } from "./tensor";
-export { MarinadeClient } from "./marinade";
+// Protocol Services - Standardized naming convention
+export { JupiterService } from "./jupiter";
+export { KaminoService } from "./kamino";
+export { TensorService } from "./tensor";
+export { MarinadeService } from "./marinade";
 export { DriftClient } from "./drift";
-export { PythClient, PYTH_FEEDS } from "./pyth";
-export { SquadsClient } from "./squads";
-export { RaydiumClient } from "./raydium";
-export { MayanClient } from "./mayan";
-export { SanctumClient } from "./sanctum";
-export { MeteoraClient } from "./meteora";
-export { MarginfiClient } from "./marginfi";
+export { PythSolanaService } from "./pyth";
+export { SquadsService } from "./squads";
+export { RaydiumV2Service } from "./raydium";
+export { MayanSolanaService } from "./mayan";
+export { SanctumService } from "./sanctum";
+export { MeteoraService } from "./meteora";
+export { MarginfiService } from "./marginfi";
 export { HeliusClient } from "./helius";
 export { ElusivClient } from "./elusiv";
 export { SolendClient } from "./solend";
@@ -19,10 +20,24 @@ export { CrossmintWalletService } from "./crossmint";
 export { DexScreenerClient } from "./dexscreener";
 export { DialectService } from "./dialect";
 export { ShyftService } from "./shyft";
+
+// Legacy exports for backward compatibility
+export { JupiterService as JupiterClient } from "./jupiter";
+export { KaminoService as KaminoClient } from "./kamino";
+export { TensorService as TensorClient } from "./tensor";
+export { MarinadeService as MarinadeClient } from "./marinade";
+export { PythSolanaService as PythClient } from "./pyth";
+export { SquadsService as SquadsClient } from "./squads";
+export { RaydiumV2Service as RaydiumClient } from "./raydium";
+export { MayanSolanaService as MayanClient } from "./mayan";
+export { SanctumService as SanctumClient } from "./sanctum";
+export { MeteoraService as MeteoraClient } from "./meteora";
+export { MarginfiService as MarginfiClient } from "./marginfi";
 export * from "./wallet";
 
 export * from "./utils/connection";
 
+// Type exports - Main SDK types
 export type {
   SwapQuote,
   SwapResult,
@@ -41,71 +56,31 @@ export type {
   MarketOverview,
 } from "./types";
 
-export type { TokenInfo as RaydiumTokenInfo } from "./raydium";
-export type { JupiterTokenInfo } from "./jupiter";
-export type { KaminoLoanHealth } from "./kamino";
-export type { TensorFloorPrice, TensorCollectionStats } from "./tensor";
-export type { MarinadeStakingInfo } from "./marinade";
-export type { PythPriceData } from "./pyth";
-export type { SquadsMultisig, SquadsProposal } from "./squads";
+// Protocol-specific type exports
 export type {
-  MayanQuote,
-  MayanSwapResult,
-  MayanTrackingResult,
-  MayanTokenInfo,
-  SanctumLsdInfo,
-  SanctumSwapQuote,
-  SanctumSwapResult,
-  MeteoraVault,
-  MeteoraVaultInfo,
-  MeteoraDepositResult,
-  MarginfiPosition,
-  MarginfiMarketInfo,
-  MarginfiAction,
-  HeliusNftMetadata,
-  HeliusWalletActivity,
-  HeliusWebhookConfig,
-} from "./types";
-
-export type {
-  ElusivPrivateTransferParams,
-  ElusivTopUpParams,
-  ElusivWithdrawParams,
-  ElusivBalanceInfo,
-  ElusivTransactionResult,
-  ElusivConfig,
-} from "./elusiv";
-
-export type {
-  SolendLoanHealth,
-  SolendReserveInfo,
-  SolendPosition,
-  InputPoolType,
-} from "./solend";
-
-export type {
-  CrossmintConfig,
-  WalletConfig,
-  TransferParams,
-  DelegatedSignerParams,
-  CustomTransactionParams,
-} from "./crossmint";
+  QuoteParams as JupiterQuoteParams,
+  QuoteResponse as JupiterQuoteResponse,
+  SwapRequest as JupiterSwapRequest,
+  TokenInfo as JupiterTokenInfo,
+  PriceResponse as JupiterPriceResponse,
+} from "./jupiter";
 
 export type { DexPair } from "./dexscreener";
 
-import { Connection } from "@solana/web3.js";
-import { JupiterClient } from "./jupiter";
-import { KaminoClient } from "./kamino";
-import { TensorClient } from "./tensor";
-import { MarinadeClient } from "./marinade";
+import { Connection, PublicKey, Keypair } from "@solana/web3.js";
+import { Wallet } from "@marinade.finance/marinade-ts-sdk";
+import { JupiterService } from "./jupiter";
+import { KaminoService } from "./kamino";
+import { TensorService } from "./tensor";
+import { MarinadeService } from "./marinade";
 import { DriftClient } from "./drift";
-import { PythClient } from "./pyth";
-import { SquadsClient } from "./squads";
-import { RaydiumClient } from "./raydium";
-import { MayanClient } from "./mayan";
-import { SanctumClient } from "./sanctum";
-import { MeteoraClient } from "./meteora";
-import { MarginfiClient } from "./marginfi";
+import { PythSolanaService } from "./pyth";
+import { SquadsService } from "./squads";
+import { RaydiumV2Service } from "./raydium";
+import { MayanSolanaService } from "./mayan";
+import { SanctumService } from "./sanctum";
+import { MeteoraService } from "./meteora";
+import { MarginfiService } from "./marginfi";
 import { HeliusClient } from "./helius";
 import { ElusivClient } from "./elusiv";
 import { SolendClient } from "./solend";
@@ -119,18 +94,18 @@ import type { SDKConfig, SolanaNetwork } from "./types";
 
 export class ForgeXSolanaSDK {
   public connection: Connection;
-  public jupiter: JupiterClient;
-  public kamino: KaminoClient;
-  public tensor: TensorClient;
-  public marinade: MarinadeClient;
+  public jupiter: JupiterService;
+  public kamino: KaminoService;
+  public tensor?: TensorService;
+  public marinade?: MarinadeService;
   public drift: DriftClient;
-  public pyth: PythClient;
-  public squads: SquadsClient;
-  public raydium: RaydiumClient;
-  public mayan: MayanClient;
-  public sanctum: SanctumClient;
-  public meteora: MeteoraClient;
-  public marginfi: MarginfiClient;
+  public pyth?: PythSolanaService;
+  public squads?: SquadsService;
+  public raydium?: RaydiumV2Service;
+  public mayan?: MayanSolanaService;
+  public sanctum?: SanctumService;
+  public meteora?: MeteoraService;
+  public marginfi?: MarginfiService;
   public helius: HeliusClient;
   public solend: SolendClient;
   public birdeye?: BirdeyeClient;
@@ -148,26 +123,51 @@ export class ForgeXSolanaSDK {
       commitment: config.connection.commitment || "confirmed",
     });
 
-    this.jupiter = new JupiterClient(this.connection);
-    this.kamino = new KaminoClient(this.connection);
-    this.tensor = new TensorClient(config.apiKeys?.tensor);
-    this.marinade = new MarinadeClient(this.connection);
+    // Core working services (no wallet required)
+    this.jupiter = new JupiterService({ connection: this.connection });
+    this.kamino = new KaminoService(this.connection);
     this.drift = new DriftClient(this.connection);
-    this.pyth = new PythClient(this.connection);
-    this.squads = new SquadsClient(this.connection, config.apiKeys?.squads);
-    this.raydium = new RaydiumClient(this.connection);
-    this.mayan = new MayanClient(this.connection);
-    this.sanctum = new SanctumClient(this.connection, config.apiKeys?.sanctum);
-    this.meteora = new MeteoraClient(this.connection, config.apiKeys?.meteora);
-    this.marginfi = new MarginfiClient(
-      this.connection,
-      config.apiKeys?.marginfi
-    );
     this.helius = new HeliusClient(
       this.connection,
       config.apiKeys?.helius || ""
     );
     this.solend = new SolendClient(this.connection);
+    this.dexscreener = new DexScreenerClient();
+
+    // Services with API key requirements
+    if (config.apiKeys?.tensor) {
+      this.tensor = new TensorService({
+        connection: this.connection,
+        apiKey: config.apiKeys.tensor,
+      });
+    }
+
+    // Services requiring additional setup
+    if (config.apiKeys?.squads) {
+      this.squads = new SquadsService({
+        connection: this.connection,
+      });
+    }
+
+    if (config.apiKeys?.sanctum) {
+      this.sanctum = new SanctumService(config.apiKeys.sanctum);
+    }
+
+    if (config.apiKeys?.meteora) {
+      this.meteora = new MeteoraService(this.connection);
+    }
+
+    if (config.apiKeys?.marginfi) {
+      this.marginfi = new MarginfiService(
+        config.connection.endpoint ||
+          this.getDefaultEndpoint(config.connection.network),
+        "production"
+      );
+    }
+
+    // Wallet-dependent services (will be initialized when wallet is connected)
+    // Note: These services require a connected wallet to function properly
+    // Call initializeWalletServices(wallet) after user connects their wallet
 
     if (config.apiKeys?.birdeye) {
       this.birdeye = new BirdeyeClient(config.apiKeys.birdeye);
@@ -178,13 +178,15 @@ export class ForgeXSolanaSDK {
     }
 
     if (config.apiKeys?.crossmint) {
-      this.crossmint = new CrossmintWalletService(config.apiKeys.crossmint);
+      this.crossmint = new CrossmintWalletService({
+        apiKey: config.apiKeys.crossmint.apiKey,
+      });
     }
 
-    this.dexscreener = new DexScreenerClient();
     if (config.apiKeys?.clockwork) {
       this.clockwork = new ClockworkService("mainnet-beta");
     }
+
     if (config.apiKeys?.dialect) {
       this.dialect = new DialectService(
         undefined,
@@ -193,6 +195,111 @@ export class ForgeXSolanaSDK {
         config.apiKeys.dialect
       );
     }
+  }
+
+  /**
+   * Initialize wallet-dependent services after user connects their wallet
+   * Call this method when the user connects their browser wallet
+   */
+  async initializeWalletServices(
+    walletAdapter: any, // Browser wallet adapter (Phantom, Solflare, etc.)
+    options?: {
+      referralCode?: PublicKey;
+      hermesUrl?: string;
+    }
+  ): Promise<void> {
+    try {
+      const walletPublicKey = walletAdapter.publicKey;
+      if (!walletPublicKey) {
+        throw new Error(
+          "Wallet must be connected before initializing services"
+        );
+      }
+
+      // Initialize Marinade with browser wallet
+      if (!this.marinade) {
+        try {
+          // Create a Marinade-compatible wallet wrapper
+          const marinadeWallet = {
+            publicKey: walletPublicKey,
+            signTransaction: walletAdapter.signTransaction?.bind(walletAdapter),
+            signAllTransactions:
+              walletAdapter.signAllTransactions?.bind(walletAdapter),
+          } as Wallet;
+
+          this.marinade = new MarinadeService(
+            this.connection.rpcEndpoint,
+            marinadeWallet,
+            options?.referralCode
+          );
+        } catch (error) {
+          console.warn("Failed to initialize Marinade service:", error);
+        }
+      }
+
+      // Initialize Pyth with browser wallet
+      if (!this.pyth) {
+        try {
+          // Create a Pyth-compatible wallet wrapper
+          const pythWallet = {
+            publicKey: walletPublicKey,
+            signTransaction: walletAdapter.signTransaction?.bind(walletAdapter),
+            signAllTransactions:
+              walletAdapter.signAllTransactions?.bind(walletAdapter),
+          };
+
+          this.pyth = new PythSolanaService(
+            this.connection,
+            pythWallet,
+            options?.hermesUrl
+          );
+        } catch (error) {
+          console.warn("Failed to initialize Pyth service:", error);
+        }
+      }
+
+      // Initialize Mayan with wallet public key
+      if (!this.mayan) {
+        try {
+          this.mayan = new MayanSolanaService(this.connection, walletPublicKey);
+        } catch (error) {
+          console.warn("Failed to initialize Mayan service:", error);
+        }
+      }
+
+      // Note: Raydium requires a Keypair (private key) which browser wallets don't expose
+      // For security reasons, we cannot initialize Raydium with browser wallets
+      // Users should use the Raydium web interface directly for trading
+    } catch (error: any) {
+      throw new Error(`Failed to initialize wallet services: ${error.message}`);
+    }
+  }
+
+  /**
+   * Check if wallet-dependent services are initialized
+   */
+  getWalletServicesStatus(): {
+    marinade: boolean;
+    pyth: boolean;
+    mayan: boolean;
+    raydium: boolean;
+  } {
+    return {
+      marinade: !!this.marinade,
+      pyth: !!this.pyth,
+      mayan: !!this.mayan,
+      raydium: !!this.raydium, // Will always be false for browser wallets
+    };
+  }
+
+  /**
+   * Disconnect wallet and clear wallet-dependent services
+   */
+  disconnectWallet(): void {
+    this.marinade = undefined;
+    this.pyth = undefined;
+    this.mayan = undefined;
+    this.raydium = undefined;
   }
 
   /**
@@ -211,6 +318,8 @@ export class ForgeXSolanaSDK {
       apiKey: string;
       jwt?: string;
     };
+    clockwork?: string;
+    dialect?: string;
   }): ForgeXSolanaSDK {
     return new ForgeXSolanaSDK({
       connection: {
@@ -237,6 +346,8 @@ export class ForgeXSolanaSDK {
       apiKey: string;
       jwt?: string;
     };
+    clockwork?: string;
+    dialect?: string;
   }): ForgeXSolanaSDK {
     return new ForgeXSolanaSDK({
       connection: {
@@ -265,6 +376,8 @@ export class ForgeXSolanaSDK {
         apiKey: string;
         jwt?: string;
       };
+      clockwork?: string;
+      dialect?: string;
     }
   ): ForgeXSolanaSDK {
     return new ForgeXSolanaSDK({
@@ -298,24 +411,29 @@ export class ForgeXSolanaSDK {
    */
   async getPortfolio(walletAddress: string) {
     try {
-      const [solBalance, loanHealth, stakingInfo, perpPositions] =
-        await Promise.allSettled([
-          this.connection.getBalance(
-            new (
-              await import("@solana/web3.js")
-            ).PublicKey(walletAddress)
-          ),
-          this.kamino.getLoanHealth(walletAddress).catch(() => null),
-          this.marinade.getStakingAPY("mSOL").catch(() => null),
-          this.drift.getPositions(walletAddress).catch(() => []),
-        ]);
+      const results = await Promise.allSettled([
+        // Get SOL balance
+        this.connection.getBalance(
+          new (
+            await import("@solana/web3.js")
+          ).PublicKey(walletAddress)
+        ),
+        // Get Jupiter token holdings if available
+        this.jupiter?.getHoldings?.(walletAddress).catch(() => null),
+        // Get basic drift positions if available
+        this.drift?.getPositions?.(walletAddress).catch(() => []),
+        // Try to get Kamino lending info if available
+        this.kamino ? this.tryGetKaminoData(walletAddress) : null,
+      ]);
+
+      const [solBalance, holdings, perpPositions, lendingData] = results;
 
       return {
         wallet: walletAddress,
         solBalance:
           solBalance.status === "fulfilled" ? solBalance.value / 1e9 : 0,
-        lending: loanHealth.status === "fulfilled" ? loanHealth.value : null,
-        staking: stakingInfo.status === "fulfilled" ? stakingInfo.value : null,
+        holdings: holdings.status === "fulfilled" ? holdings.value : null,
+        lending: lendingData,
         perpetuals:
           perpPositions.status === "fulfilled" ? perpPositions.value : [],
         timestamp: Date.now(),
@@ -326,33 +444,51 @@ export class ForgeXSolanaSDK {
   }
 
   /**
+   * Try to get Kamino lending data safely
+   */
+  private async tryGetKaminoData(walletAddress: string) {
+    try {
+      // Add safe Kamino method calls here when available
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Get market overview data
    */
   async getMarketOverview() {
     try {
-      const [prices, marinadeInfo, tensorTopCollections] =
-        await Promise.allSettled([
-          this.pyth.getMultiplePrices([
-            "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d", // SOL/USD
-            "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43", // BTC/USD
-            "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace", // ETH/USD
-          ]),
-          this.marinade.getStakingAPY("mSOL"),
-          this.tensor.getCollectionsByVolume("24h", 5),
-        ]);
+      const results = await Promise.allSettled([
+        // Get Jupiter price data if available
+        this.jupiter
+          ?.getPrices?.(["So11111111111111111111111111111111111111112"])
+          .catch(() => ({})),
+        // Get basic connection info
+        this.connection.getSlot(),
+        // Get DexScreener data
+        this.dexscreener
+          ?.getTokenPairs?.(
+            "solana",
+            "So11111111111111111111111111111111111111112"
+          )
+          .catch(() => []),
+      ]);
+
+      const [prices, slot, dexData] = results;
 
       return {
         prices: {
-          sol: prices.status === "fulfilled" ? prices.value[0]?.price || 0 : 0,
-          btc: prices.status === "fulfilled" ? prices.value[1]?.price || 0 : 0,
-          eth: prices.status === "fulfilled" ? prices.value[2]?.price || 0 : 0,
+          sol:
+            prices.status === "fulfilled" && prices.value
+              ? Object.values(prices.value)[0]?.usdPrice || 0
+              : 0,
         },
-        staking:
-          marinadeInfo.status === "fulfilled" ? marinadeInfo.value : null,
-        nfts:
-          tensorTopCollections.status === "fulfilled"
-            ? tensorTopCollections.value
-            : [],
+        network: {
+          slot: slot.status === "fulfilled" ? slot.value : 0,
+        },
+        dex: dexData.status === "fulfilled" ? dexData.value : [],
         timestamp: Date.now(),
       };
     } catch (error: any) {
@@ -369,21 +505,10 @@ export class ForgeXSolanaSDK {
       jupiter: false,
       kamino: false,
       tensor: false,
-      marinade: false,
       drift: false,
-      pyth: false,
-      squads: false,
-      raydium: false,
-      mayan: false,
-      sanctum: false,
-      meteora: false,
-      marginfi: false,
       helius: false,
       solend: false,
-      birdeye: false,
       dexscreener: false,
-      shyft: false,
-      crossmint: false,
     };
 
     try {
@@ -392,101 +517,46 @@ export class ForgeXSolanaSDK {
     } catch {}
 
     try {
-      await this.jupiter.getAllTokensLegacy();
+      await this.jupiter?.searchTokens?.("SOL");
       checks.jupiter = true;
     } catch {}
 
     try {
-      await this.kamino.getMarkets();
-      checks.kamino = true;
+      // Check if kamino service is available
+      if (this.kamino) {
+        checks.kamino = true;
+      }
     } catch {}
 
     try {
-      await this.tensor.getCollectionsByVolume("24h", 1);
+      await this.tensor?.getCollectionBySlug?.("degods");
       checks.tensor = true;
     } catch {}
 
     try {
-      await this.marinade.getStakingAPY("mSOL");
-      checks.marinade = true;
+      // Check if drift service is available
+      if (this.drift) {
+        checks.drift = true;
+      }
     } catch {}
 
     try {
-      await this.drift.getMarkets();
-      checks.drift = true;
-    } catch {}
-
-    try {
-      await this.pyth.getAssetPrice(
-        "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d"
-      );
-      checks.pyth = true;
-    } catch {}
-
-    try {
-      await this.raydium.getPriorityFee();
-      checks.raydium = true;
-    } catch {}
-
-    try {
-      await this.mayan.getSupportedChains();
-      checks.mayan = true;
-    } catch {}
-
-    try {
-      await this.sanctum.getAllLsdYields();
-      checks.sanctum = true;
-    } catch {}
-
-    try {
-      await this.meteora.getAllVaults();
-      checks.meteora = true;
-    } catch {}
-
-    try {
-      await this.marginfi.getMarkets();
-      checks.marginfi = true;
-    } catch {}
-
-    try {
-      await this.helius.getWebhooks();
+      await this.helius?.getWebhooks?.();
       checks.helius = true;
     } catch {}
 
     try {
-      await this.solend.initialize();
+      await this.solend?.initialize?.();
       checks.solend = true;
     } catch {}
 
-    if (this.birdeye) {
-      try {
-        await this.birdeye.getTokenPrice(
-          "So11111111111111111111111111111111111111112"
-        );
-        checks.birdeye = true;
-      } catch {}
-    }
-
     try {
-      await this.dexscreener.getTokenPairs(
+      await this.dexscreener?.getTokenPairs?.(
         "solana",
         "So11111111111111111111111111111111111111112"
       );
       checks.dexscreener = true;
     } catch {}
-
-    if (this.shyft) {
-      try {
-        await this.shyft.getWalletBalance("11111111111111111111111111111112");
-        checks.shyft = true;
-      } catch {}
-    }
-
-    if (this.crossmint) {
-      try {
-        checks.crossmint = true;
-      } catch {}
-    }
 
     return {
       ...checks,

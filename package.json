@@ -1,6 +1,6 @@
 {
   "name": "forgexai-sdk",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "A comprehensive SDK for interacting with Solana DeFi protocols",
   "main": "dist/index.js",
   "module": "dist/index.js",
