@@ -1,591 +1,787 @@
-import axios from "axios";
-import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import * as multisig from "@sqds/multisig";
+import {
+  Connection,
+  PublicKey,
+  Keypair,
+  TransactionMessage,
+  LAMPORTS_PER_SOL,
+  SystemProgram,
+  Transaction,
+  VersionedTransaction,
+  TransactionInstruction,
+} from "@solana/web3.js";
+import * as beet from "@metaplex-foundation/beet";
 
-const SQUADS_API = "https://api.squads.so/v3";
-const SQUADS_INDEXER_API = "https://indexer.squads.so/v1";
+/**
+ * Configuration options for SquadsService
+ */
+export interface SquadsServiceConfig {
+  connection: Connection;
+  programId?: PublicKey;
+}
 
-export interface SquadsMultisig {
-  publicKey: string;
+/**
+ * Member configuration for multisig
+ */
+export interface MemberConfig {
+  key: PublicKey;
+  permissions: multisig.types.Permissions;
+}
+
+/**
+ * Multisig creation parameters
+ */
+export interface CreateMultisigParams {
+  creator: Keypair;
+  createKey: PublicKey;
+  members: MemberConfig[];
   threshold: number;
-  members: Array<{
-    key: string;
-    permissions: {
-      mask: number;
-      vote: boolean;
-      execute: boolean;
-      initiate: boolean;
-    };
-  }>;
-  transactionIndex: number;
-  staleTransactionIndex: number;
-  timelock: number;
-  createKey: string;
-  allowExternalExecute: boolean;
-  rentCollector?: string;
+  timeLock?: number;
+  configAuthority?: PublicKey | null;
+  rentCollector?: PublicKey | null;
 }
 
-export interface SquadsProposal {
-  publicKey: string;
-  multisig: string;
-  transactionIndex: number;
-  creator: string;
-  status:
-    | "Draft"
-    | "Active"
-    | "ExecuteReady"
-    | "Executed"
-    | "Rejected"
-    | "Cancelled"
-    | "Stale";
-  approvals: string[];
-  rejections: string[];
-  cancelled: boolean;
-  executed: boolean;
-  executedAt?: number;
-  message?: string;
-  transactionMessage?: {
-    accountKeys: string[];
-    instructions: Array<{
-      programId: string;
-      data: string;
-      accounts: number[];
-    }>;
-    recentBlockhash: string;
-  };
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface SquadsTreasuryBalance {
-  address: string;
-  sol: number;
-  tokens: Array<{
-    mint: string;
-    symbol?: string;
-    decimals: number;
-    amount: number;
-    uiAmount: number;
-    value?: number;
-  }>;
-  totalValue?: number;
-  timestamp: number;
-}
-
-export interface SquadsTransaction {
-  signature: string;
-  slot: number;
-  blockTime: number;
-  status: "success" | "failed";
-  fee: number;
-  type: "multisig" | "proposal" | "vote" | "execute";
-  multisig: string;
-  proposal?: string;
-  signer: string;
+/**
+ * Vault transaction parameters
+ */
+export interface CreateVaultTransactionParams {
+  multisigPda: PublicKey;
+  creator: PublicKey;
+  vaultIndex: number;
+  instructions: TransactionInstruction[];
+  ephemeralSigners?: number;
   memo?: string;
 }
 
-export interface SquadsVault {
-  publicKey: string;
-  index: number;
-  multisig: string;
-  creator: string;
-  balance: number;
-  tokens: Array<{
-    mint: string;
-    amount: number;
-    decimals: number;
-  }>;
+/**
+ * Config transaction action types
+ */
+export type ConfigAction =
+  | { __kind: "AddMember"; newMember: MemberConfig }
+  | { __kind: "RemoveMember"; oldMember: PublicKey }
+  | { __kind: "ChangeThreshold"; newThreshold: number }
+  | { __kind: "SetTimeLock"; newTimeLock: number }
+  | { __kind: "SetRentCollector"; newRentCollector: PublicKey | null }
+  | {
+      __kind: "AddSpendingLimit";
+      createKey: PublicKey;
+      vaultIndex: number;
+      mint: PublicKey;
+      amount: beet.bignum;
+      period: multisig.generated.Period;
+      members: PublicKey[];
+      destinations: PublicKey[];
+    }
+  | { __kind: "RemoveSpendingLimit"; spendingLimit: PublicKey };
+
+/**
+ * Batch transaction parameters
+ */
+export interface BatchTransactionParams {
+  multisigPda: PublicKey;
+  creator: PublicKey;
+  vaultIndex: number;
+  transactions: TransactionInstruction[][];
+  memo?: string;
 }
 
-export interface SquadsActivity {
-  type:
-    | "proposal_created"
-    | "proposal_approved"
-    | "proposal_rejected"
-    | "proposal_executed"
-    | "member_added"
-    | "member_removed";
-  timestamp: number;
-  signer: string;
-  multisig: string;
-  proposal?: string;
-  details?: any;
-}
+/**
+ * Service class for interacting with Squads Protocol v4
+ * Provides methods for multisig creation, transaction management, and proposal handling
+ */
+export class SquadsService {
+  private connection: Connection;
+  private programId: PublicKey;
 
-export class SquadsClient {
-  constructor(private connection: Connection, private apiKey?: string) {}
-
-  /**
-   * Get multisig information and configuration
-   */
-  async getMultisigInfo(multisigAddress: string): Promise<SquadsMultisig> {
-    try {
-      const response = await axios.get(
-        `${SQUADS_API}/multisig/${multisigAddress}`,
-        {
-          headers: this.apiKey ? { "X-API-KEY": this.apiKey } : {},
-        }
-      );
-
-      if (!response.data) {
-        throw new Error("Multisig not found");
-      }
-
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        `Failed to get multisig info: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
+  constructor(config: SquadsServiceConfig) {
+    this.connection = config.connection;
+    this.programId =
+      config.programId ||
+      new PublicKey("SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf");
   }
 
   /**
-   * Get all proposals for a multisig
+   * Get the program ID
    */
-  async getProposals(
-    multisigAddress: string,
-    status?: string,
-    limit: number = 20,
-    offset: number = 0
-  ): Promise<SquadsProposal[]> {
-    try {
-      const params: any = {
-        limit,
-        offset,
-      };
-
-      if (status) {
-        params.status = status;
-      }
-
-      const response = await axios.get(
-        `${SQUADS_API}/multisig/${multisigAddress}/proposals`,
-        {
-          params,
-          headers: this.apiKey ? { "X-API-KEY": this.apiKey } : {},
-        }
-      );
-
-      return response.data || [];
-    } catch (error: any) {
-      throw new Error(
-        `Failed to get proposals: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
+  getProgramId(): PublicKey {
+    return this.programId;
   }
 
   /**
-   * Get new/active proposals for a multisig
+   * Get the connection
    */
-  async getNewProposals(multisigAddress: string): Promise<SquadsProposal[]> {
-    try {
-      return await this.getProposals(multisigAddress, "Active");
-    } catch (error: any) {
-      throw new Error(`Failed to get new proposals: ${error.message}`);
-    }
+  getConnection(): Connection {
+    return this.connection;
+  }
+
+  // ==================== PDA Derivation Methods ====================
+
+  /**
+   * Derive multisig PDA from createKey
+   */
+  getMultisigPda(createKey: PublicKey): [PublicKey, number] {
+    return multisig.getMultisigPda({
+      createKey,
+    });
   }
 
   /**
-   * Get specific proposal details
+   * Derive vault PDA from multisig PDA and vault index
    */
-  async getProposal(proposalAddress: string): Promise<SquadsProposal> {
-    try {
-      const response = await axios.get(
-        `${SQUADS_API}/proposal/${proposalAddress}`,
-        {
-          headers: this.apiKey ? { "X-API-KEY": this.apiKey } : {},
-        }
-      );
-
-      if (!response.data) {
-        throw new Error("Proposal not found");
-      }
-
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        `Failed to get proposal: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
+  getVaultPda(multisigPda: PublicKey, index: number): [PublicKey, number] {
+    return multisig.getVaultPda({
+      multisigPda,
+      index,
+    });
   }
 
   /**
-   * Get treasury balance including SOL and SPL tokens
+   * Derive transaction PDA
    */
-  async getTreasuryBalance(
-    multisigAddress: string
-  ): Promise<SquadsTreasuryBalance> {
-    try {
-      const pubkey = new PublicKey(multisigAddress);
-      const solBalance = await this.connection.getBalance(pubkey);
-
-      const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
-        pubkey,
-        {
-          programId: new PublicKey(
-            "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-          ),
-        }
-      );
-
-      const tokens = tokenAccounts.value
-        .map((account) => {
-          const accountInfo = account.account.data.parsed.info;
-          return {
-            mint: accountInfo.mint,
-            decimals: accountInfo.tokenAmount.decimals,
-            amount: parseInt(accountInfo.tokenAmount.amount),
-            uiAmount: accountInfo.tokenAmount.uiAmount,
-          };
-        })
-        .filter((token) => token.amount > 0);
-
-      return {
-        address: multisigAddress,
-        sol: solBalance / LAMPORTS_PER_SOL,
-        tokens,
-        timestamp: Date.now(),
-      };
-    } catch (error: any) {
-      throw new Error(`Failed to get treasury balance: ${error.message}`);
-    }
+  getTransactionPda(
+    multisigPda: PublicKey,
+    transactionIndex: bigint
+  ): [PublicKey, number] {
+    return multisig.getTransactionPda({
+      multisigPda,
+      index: transactionIndex,
+    });
   }
 
   /**
-   * Get multisig vaults
+   * Derive proposal PDA
    */
-  async getVaults(multisigAddress: string): Promise<SquadsVault[]> {
-    try {
-      const response = await axios.get(
-        `${SQUADS_API}/multisig/${multisigAddress}/vaults`,
-        {
-          headers: this.apiKey ? { "X-API-KEY": this.apiKey } : {},
-        }
-      );
-
-      return response.data || [];
-    } catch (error: any) {
-      throw new Error(
-        `Failed to get vaults: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
+  getProposalPda(
+    multisigPda: PublicKey,
+    transactionIndex: bigint
+  ): [PublicKey, number] {
+    return multisig.getProposalPda({
+      multisigPda,
+      transactionIndex,
+    });
   }
 
   /**
-   * Get transaction history for a multisig
+   * Derive spending limit PDA
    */
-  async getTransactionHistory(
-    multisigAddress: string,
-    limit: number = 50,
-    before?: string
-  ): Promise<SquadsTransaction[]> {
-    try {
-      const params: any = { limit };
-      if (before) params.before = before;
-
-      const response = await axios.get(
-        `${SQUADS_INDEXER_API}/multisig/${multisigAddress}/transactions`,
-        {
-          params,
-          headers: this.apiKey ? { "X-API-KEY": this.apiKey } : {},
-        }
-      );
-
-      return response.data || [];
-    } catch (error: any) {
-      throw new Error(
-        `Failed to get transaction history: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
+  getSpendingLimitPda(
+    multisigPda: PublicKey,
+    createKey: PublicKey
+  ): [PublicKey, number] {
+    return multisig.getSpendingLimitPda({
+      multisigPda,
+      createKey,
+    });
   }
 
   /**
-   * Get activity feed for a multisig
+   * Derive batch PDA (for a specific transaction in the batch).
+   * Note: the underlying library requires a transactionIndex, so a default of 0 is provided for callers that don't need a specific transaction.
    */
-  async getActivity(
-    multisigAddress: string,
-    limit: number = 20,
-    offset: number = 0
-  ): Promise<SquadsActivity[]> {
-    try {
-      const response = await axios.get(
-        `${SQUADS_API}/multisig/${multisigAddress}/activity`,
-        {
-          params: { limit, offset },
-          headers: this.apiKey ? { "X-API-KEY": this.apiKey } : {},
-        }
-      );
-
-      return response.data || [];
-    } catch (error: any) {
-      throw new Error(
-        `Failed to get activity: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
+  getBatchPda(
+    multisigPda: PublicKey,
+    batchIndex: bigint,
+    transactionIndex: number = 0
+  ): [PublicKey, number] {
+    return multisig.getBatchTransactionPda({
+      multisigPda,
+      batchIndex,
+      transactionIndex,
+    });
   }
 
-  /**
-   * Get multisigs where a user is a member
-   */
-  async getUserMultisigs(userAddress: string): Promise<SquadsMultisig[]> {
-    try {
-      const response = await axios.get(
-        `${SQUADS_API}/user/${userAddress}/multisigs`,
-        {
-          headers: this.apiKey ? { "X-API-KEY": this.apiKey } : {},
-        }
-      );
-
-      return response.data || [];
-    } catch (error: any) {
-      throw new Error(
-        `Failed to get user multisigs: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
+  // ==================== Account Fetching Methods ====================
 
   /**
-   * Create a new proposal transaction
+   * Fetch multisig account data
    */
-  async buildCreateProposalTransaction(
-    multisigAddress: string,
-    creatorPublicKey: string,
-    instructions: any[],
-    message?: string
-  ): Promise<{ transaction: string }> {
-    try {
-      const response = await axios.post(
-        `${SQUADS_API}/multisig/${multisigAddress}/proposal`,
-        {
-          creator: creatorPublicKey,
-          instructions,
-          message,
-        },
-        {
-          headers: this.apiKey ? { "X-API-KEY": this.apiKey } : {},
-        }
-      );
-
-      if (!response.data || !response.data.transaction) {
-        throw new Error("Failed to build create proposal transaction");
-      }
-
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        `Failed to build create proposal transaction: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
-
-  /**
-   * Build approve proposal transaction
-   */
-  async buildApproveProposalTransaction(
-    proposalAddress: string,
-    memberPublicKey: string
-  ): Promise<{ transaction: string }> {
-    try {
-      const response = await axios.post(
-        `${SQUADS_API}/proposal/${proposalAddress}/approve`,
-        {
-          member: memberPublicKey,
-        },
-        {
-          headers: this.apiKey ? { "X-API-KEY": this.apiKey } : {},
-        }
-      );
-
-      if (!response.data || !response.data.transaction) {
-        throw new Error("Failed to build approve proposal transaction");
-      }
-
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        `Failed to build approve proposal transaction: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
-
-  /**
-   * Build reject proposal transaction
-   */
-  async buildRejectProposalTransaction(
-    proposalAddress: string,
-    memberPublicKey: string
-  ): Promise<{ transaction: string }> {
-    try {
-      const response = await axios.post(
-        `${SQUADS_API}/proposal/${proposalAddress}/reject`,
-        {
-          member: memberPublicKey,
-        },
-        {
-          headers: this.apiKey ? { "X-API-KEY": this.apiKey } : {},
-        }
-      );
-
-      if (!response.data || !response.data.transaction) {
-        throw new Error("Failed to build reject proposal transaction");
-      }
-
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        `Failed to build reject proposal transaction: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
-
-  /**
-   * Build execute proposal transaction
-   */
-  async buildExecuteProposalTransaction(
-    proposalAddress: string,
-    executorPublicKey: string
-  ): Promise<{ transaction: string }> {
-    try {
-      const response = await axios.post(
-        `${SQUADS_API}/proposal/${proposalAddress}/execute`,
-        {
-          executor: executorPublicKey,
-        },
-        {
-          headers: this.apiKey ? { "X-API-KEY": this.apiKey } : {},
-        }
-      );
-
-      if (!response.data || !response.data.transaction) {
-        throw new Error("Failed to build execute proposal transaction");
-      }
-
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        `Failed to build execute proposal transaction: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
-
-  /**
-   * Check if a proposal has enough approvals to execute
-   */
-  static canExecuteProposal(
-    proposal: SquadsProposal,
-    multisig: SquadsMultisig
-  ): boolean {
-    return proposal.approvals.length >= multisig.threshold;
-  }
-
-  /**
-   * Check if a user can vote on a proposal
-   */
-  static canUserVote(
-    userAddress: string,
-    proposal: SquadsProposal,
-    multisig: SquadsMultisig
-  ): boolean {
-    const isMember = multisig.members.some(
-      (member) => member.key === userAddress
+  async getMultisigAccount(
+    multisigPda: PublicKey
+  ): Promise<multisig.accounts.Multisig> {
+    return await multisig.accounts.Multisig.fromAccountAddress(
+      this.connection,
+      multisigPda
     );
-    const hasVoted =
-      proposal.approvals.includes(userAddress) ||
-      proposal.rejections.includes(userAddress);
-    return isMember && !hasVoted && proposal.status === "Active";
   }
 
   /**
-   * Get proposal voting status
+   * Fetch vault transaction account data
    */
-  static getProposalVotingStatus(
-    proposal: SquadsProposal,
-    multisig: SquadsMultisig
-  ): {
-    approvalsNeeded: number;
-    approvalsReceived: number;
-    canExecute: boolean;
-    votingComplete: boolean;
-  } {
-    const approvalsReceived = proposal.approvals.length;
-    const approvalsNeeded = multisig.threshold;
-    const canExecute = approvalsReceived >= approvalsNeeded;
-    const totalVotes = proposal.approvals.length + proposal.rejections.length;
-    const votingComplete = canExecute || totalVotes >= multisig.members.length;
+  async getVaultTransactionAccount(
+    transactionPda: PublicKey
+  ): Promise<multisig.accounts.VaultTransaction> {
+    return await multisig.accounts.VaultTransaction.fromAccountAddress(
+      this.connection,
+      transactionPda
+    );
+  }
 
+  /**
+   * Fetch config transaction account data
+   */
+  async getConfigTransactionAccount(
+    transactionPda: PublicKey
+  ): Promise<multisig.accounts.ConfigTransaction> {
+    return await multisig.accounts.ConfigTransaction.fromAccountAddress(
+      this.connection,
+      transactionPda
+    );
+  }
+
+  /**
+   * Fetch proposal account data
+   */
+  async getProposalAccount(
+    proposalPda: PublicKey
+  ): Promise<multisig.accounts.Proposal> {
+    return await multisig.accounts.Proposal.fromAccountAddress(
+      this.connection,
+      proposalPda
+    );
+  }
+
+  /**
+   * Fetch batch account data
+   */
+  async getBatchAccount(batchPda: PublicKey): Promise<multisig.accounts.Batch> {
+    return await multisig.accounts.Batch.fromAccountAddress(
+      this.connection,
+      batchPda
+    );
+  }
+
+  /**
+   * Get current transaction index from multisig
+   */
+  async getCurrentTransactionIndex(
+    multisigPda: PublicKey
+  ): Promise<beet.bignum> {
+    const multisigInfo = await this.getMultisigAccount(multisigPda);
+    return multisigInfo.transactionIndex;
+  }
+
+  /**
+   * Get next transaction index
+   */
+  async getNextTransactionIndex(multisigPda: PublicKey): Promise<bigint> {
+    const currentIndex = await this.getCurrentTransactionIndex(multisigPda);
+    const nextIndex = BigInt(currentIndex.toString()) + 1n;
+    return nextIndex;
+  }
+
+  // ==================== Vault Checking ====================
+
+  /**
+   * Check if an address is a valid Squads vault (V3 or V4)
+   * @param address - The address to check
+   * @returns Object containing isSquad (boolean) and version (string)
+   */
+  async isSquadsVault(
+    address: PublicKey
+  ): Promise<{ isSquad: boolean; version: string }> {
+    try {
+      const response = await fetch(
+        `https://4fnetmviidiqkjzenwxe66vgoa0soerr.lambda-url.us-east-1.on.aws/isSquad/${address.toString()}`
+      );
+      const data = await response.json();
+      return {
+        isSquad: data.isSquad || false,
+        version: data.version || "",
+      };
+    } catch (error) {
+      console.error("Error checking vault:", error);
+      return { isSquad: false, version: "" };
+    }
+  }
+
+  // ==================== Multisig Creation ====================
+
+  /**
+   * Create a new multisig
+   */
+  async createMultisig(
+    params: CreateMultisigParams
+  ): Promise<TransactionInstruction> {
+    const [multisigPda] = this.getMultisigPda(params.createKey);
+    const programConfigPda = multisig.getProgramConfigPda({})[0];
+
+    const programConfig =
+      await multisig.accounts.ProgramConfig.fromAccountAddress(
+        this.connection,
+        programConfigPda
+      );
+
+    return await multisig.instructions.multisigCreateV2({
+      createKey: params.createKey,
+      creator: params.creator.publicKey,
+      multisigPda,
+      configAuthority: params.configAuthority ?? null,
+      timeLock: params.timeLock ?? 0,
+      members: params.members,
+      threshold: params.threshold,
+      treasury: programConfig.treasury,
+      rentCollector: params.rentCollector ?? null,
+    });
+  }
+
+  // ==================== Vault Transaction Methods ====================
+
+  /**
+   * Create a vault transaction
+   */
+  async createVaultTransaction(
+    params: CreateVaultTransactionParams
+  ): Promise<TransactionInstruction> {
+    const [vaultPda] = this.getVaultPda(params.multisigPda, params.vaultIndex);
+    const transactionIndex = await this.getNextTransactionIndex(
+      params.multisigPda
+    );
+
+    const recentBlockhash = (await this.connection.getLatestBlockhash())
+      .blockhash;
+
+    const transactionMessage = new TransactionMessage({
+      payerKey: vaultPda,
+      recentBlockhash,
+      instructions: params.instructions,
+    });
+
+    return await multisig.instructions.vaultTransactionCreate({
+      multisigPda: params.multisigPda,
+      transactionIndex,
+      creator: params.creator,
+      vaultIndex: params.vaultIndex,
+      ephemeralSigners: params.ephemeralSigners ?? 0,
+      transactionMessage,
+      memo: params.memo,
+    });
+  }
+
+  /**
+   * Execute a vault transaction
+   */
+  async executeVaultTransaction(
+    multisigPda: PublicKey,
+    transactionIndex: bigint,
+    member: PublicKey
+  ): Promise<TransactionInstruction> {
+    const result = await multisig.instructions.vaultTransactionExecute({
+      connection: this.connection,
+      multisigPda,
+      transactionIndex,
+      member,
+      programId: this.programId,
+    });
+    return result.instruction;
+  }
+
+  // ==================== Config Transaction Methods ====================
+
+  /**
+   * Create a config transaction
+   */
+  async createConfigTransaction(
+    multisigPda: PublicKey,
+    creator: PublicKey,
+    actions: ConfigAction[]
+  ): Promise<TransactionInstruction> {
+    const transactionIndex = await this.getNextTransactionIndex(multisigPda);
+
+    return await multisig.instructions.configTransactionCreate({
+      multisigPda,
+      transactionIndex,
+      creator,
+      actions,
+    });
+  }
+
+  /**
+   * Execute a config transaction
+   */
+  async executeConfigTransaction(
+    multisigPda: PublicKey,
+    transactionIndex: bigint,
+    member: PublicKey
+  ): Promise<TransactionInstruction> {
+    return await multisig.instructions.configTransactionExecute({
+      multisigPda,
+      transactionIndex,
+      member,
+    });
+  }
+
+  // ==================== Proposal Methods ====================
+
+  /**
+   * Create a proposal
+   */
+  async createProposal(
+    multisigPda: PublicKey,
+    transactionIndex: bigint,
+    creator: PublicKey,
+    isDraft: boolean = false
+  ): Promise<TransactionInstruction> {
+    return await multisig.instructions.proposalCreate({
+      multisigPda,
+      transactionIndex,
+      creator,
+      isDraft,
+    });
+  }
+
+  /**
+   * Activate a draft proposal
+   */
+  async activateProposal(
+    multisigPda: PublicKey,
+    transactionIndex: bigint,
+    member: PublicKey
+  ): Promise<TransactionInstruction> {
+    return await multisig.instructions.proposalActivate({
+      multisigPda,
+      transactionIndex,
+      member,
+    });
+  }
+
+  /**
+   * Approve a proposal
+   */
+  async approveProposal(
+    multisigPda: PublicKey,
+    transactionIndex: bigint,
+    member: PublicKey
+  ): Promise<TransactionInstruction> {
+    return await multisig.instructions.proposalApprove({
+      multisigPda,
+      transactionIndex,
+      member,
+    });
+  }
+
+  /**
+   * Reject a proposal
+   */
+  async rejectProposal(
+    multisigPda: PublicKey,
+    transactionIndex: bigint,
+    member: PublicKey
+  ): Promise<TransactionInstruction> {
+    return await multisig.instructions.proposalReject({
+      multisigPda,
+      transactionIndex,
+      member,
+    });
+  }
+
+  /**
+   * Cancel a proposal
+   */
+  async cancelProposal(
+    multisigPda: PublicKey,
+    transactionIndex: bigint,
+    member: PublicKey
+  ): Promise<TransactionInstruction> {
+    return await multisig.instructions.proposalCancel({
+      multisigPda,
+      transactionIndex,
+      member,
+    });
+  }
+
+  // ==================== Batch Methods ====================
+
+  /**
+   * Create a batch transaction
+   */
+  async createBatch(
+    params: BatchTransactionParams
+  ): Promise<TransactionInstruction[]> {
+    const batchIndex = await this.getNextTransactionIndex(params.multisigPda);
+    const [vaultPda] = this.getVaultPda(params.multisigPda, params.vaultIndex);
+
+    const instructions: TransactionInstruction[] = [];
+
+    // Create batch
+    const batchCreateIx = await multisig.instructions.batchCreate({
+      multisigPda: params.multisigPda,
+      batchIndex,
+      creator: params.creator,
+      vaultIndex: params.vaultIndex,
+      memo: params.memo,
+    });
+    instructions.push(batchCreateIx);
+
+    // Create draft proposal
+    const proposalCreateIx = await multisig.instructions.proposalCreate({
+      multisigPda: params.multisigPda,
+      transactionIndex: batchIndex,
+      creator: params.creator,
+      isDraft: true,
+    });
+    instructions.push(proposalCreateIx);
+
+    // Add transactions to batch
+    const recentBlockhash = (await this.connection.getLatestBlockhash())
+      .blockhash;
+
+    for (let i = 0; i < params.transactions.length; i++) {
+      const transactionMessage = new TransactionMessage({
+        payerKey: vaultPda,
+        recentBlockhash,
+        instructions: params.transactions[i],
+      });
+
+      const batchAddIx = await multisig.instructions.batchAddTransaction({
+        multisigPda: params.multisigPda,
+        batchIndex,
+        vaultIndex: params.vaultIndex,
+        transactionIndex: i + 1, // Batch transaction index starts at 1
+        transactionMessage,
+        ephemeralSigners: 0,
+        member: params.creator,
+      });
+      instructions.push(batchAddIx);
+    }
+
+    return instructions;
+  }
+
+  /**
+   * Execute a batch transaction
+   */
+  async executeBatch(
+    multisigPda: PublicKey,
+    batchIndex: bigint,
+    transactionIndex: number,
+    member: PublicKey
+  ): Promise<TransactionInstruction> {
+    const result = await multisig.instructions.batchExecuteTransaction({
+      connection: this.connection,
+      multisigPda,
+      batchIndex,
+      transactionIndex,
+      member,
+      programId: this.programId,
+    });
+    return result.instruction;
+  }
+
+  // ==================== Controlled Multisig Methods (Config Authority) ====================
+
+  /**
+   * Add member via config authority (controlled multisig only)
+   */
+  async addMemberControlled(
+    multisigPda: PublicKey,
+    configAuthority: Keypair,
+    newMember: MemberConfig,
+    rentPayer: Keypair
+  ): Promise<string> {
+    return await multisig.rpc.multisigAddMember({
+      connection: this.connection,
+      feePayer: configAuthority,
+      multisigPda,
+      configAuthority: configAuthority.publicKey,
+      rentPayer,
+      newMember,
+      programId: this.programId,
+    });
+  }
+
+  /**
+   * Remove member via config authority (controlled multisig only)
+   */
+  async removeMemberControlled(
+    multisigPda: PublicKey,
+    configAuthority: Keypair,
+    oldMember: PublicKey
+  ): Promise<string> {
+    return await multisig.rpc.multisigRemoveMember({
+      connection: this.connection,
+      feePayer: configAuthority,
+      multisigPda,
+      configAuthority: configAuthority.publicKey,
+      oldMember,
+      programId: this.programId,
+    });
+  }
+
+  /**
+   * Set rent collector via config authority (controlled multisig only)
+   */
+  async setRentCollectorControlled(
+    multisigPda: PublicKey,
+    configAuthority: Keypair,
+    newRentCollector: PublicKey,
+    rentPayer: PublicKey
+  ): Promise<string> {
+    return await multisig.rpc.multisigSetRentCollector({
+      connection: this.connection,
+      feePayer: configAuthority,
+      multisigPda,
+      configAuthority: configAuthority.publicKey,
+      newRentCollector,
+      rentPayer,
+      programId: this.programId,
+    });
+  }
+
+  /**
+   * Add spending limit via config authority (controlled multisig only)
+   */
+  async addSpendingLimitControlled(
+    multisigPda: PublicKey,
+    configAuthority: Keypair,
+    createKey: PublicKey,
+    vaultIndex: number,
+    mint: PublicKey,
+    amount: bigint,
+    period: multisig.generated.Period,
+    members: PublicKey[] | null,
+    destinations: PublicKey[],
+    rentPayer: Keypair
+  ): Promise<string> {
+    const [spendingLimitPda] = this.getSpendingLimitPda(multisigPda, createKey);
+
+    return await multisig.rpc.multisigAddSpendingLimit({
+      connection: this.connection,
+      feePayer: configAuthority,
+      multisigPda,
+      spendingLimit: spendingLimitPda,
+      createKey,
+      rentPayer,
+      amount,
+      configAuthority: configAuthority.publicKey,
+      period,
+      mint,
+      destinations,
+      members,
+      vaultIndex,
+      programId: this.programId,
+    });
+  }
+
+  /**
+   * Remove spending limit via config authority (controlled multisig only)
+   */
+  async removeSpendingLimitControlled(
+    multisigPda: PublicKey,
+    configAuthority: Keypair,
+    spendingLimitPda: PublicKey,
+    rentCollector: PublicKey
+  ): Promise<string> {
+    return await multisig.rpc.multisigRemoveSpendingLimit({
+      connection: this.connection,
+      feePayer: configAuthority,
+      multisigPda,
+      spendingLimit: spendingLimitPda,
+      configAuthority: configAuthority.publicKey,
+      rentCollector,
+      programId: this.programId,
+    });
+  }
+
+  // ==================== Account Closing ====================
+
+  /**
+   * Close vault transaction account and reclaim rent
+   */
+  async closeVaultTransaction(
+    multisigPda: PublicKey,
+    transactionIndex: bigint,
+    rentCollector: PublicKey
+  ): Promise<TransactionInstruction> {
+    return await multisig.instructions.vaultTransactionAccountsClose({
+      multisigPda,
+      rentCollector,
+      transactionIndex,
+    });
+  }
+
+  // ==================== Utility Methods ====================
+
+  /**
+   * Get all permissions
+   */
+  static getAllPermissions(): multisig.types.Permissions {
+    return multisig.types.Permissions.all();
+  }
+
+  /**
+   * Get specific permissions
+   */
+  static getPermissions(
+    permissions: multisig.types.Permission[]
+  ): multisig.types.Permissions {
+    return multisig.types.Permissions.fromPermissions(permissions);
+  }
+
+  /**
+   * Create a simple SOL transfer instruction
+   */
+  createSolTransferInstruction(
+    from: PublicKey,
+    to: PublicKey,
+    lamports: number
+  ): TransactionInstruction {
+    return SystemProgram.transfer({
+      fromPubkey: from,
+      toPubkey: to,
+      lamports,
+    });
+  }
+
+  /**
+   * Helper to create a member config with all permissions
+   */
+  static createMemberWithAllPermissions(key: PublicKey): MemberConfig {
     return {
-      approvalsNeeded,
-      approvalsReceived,
-      canExecute,
-      votingComplete,
+      key,
+      permissions: multisig.types.Permissions.all(),
     };
   }
 
   /**
-   * Calculate time until proposal expires (if applicable)
+   * Helper to create a member config with voter permissions only
    */
-  static getProposalTimeRemaining(
-    proposal: SquadsProposal,
-    multisig: SquadsMultisig
-  ): {
-    timeRemaining: number;
-    isExpired: boolean;
-  } {
-    if (multisig.timelock === 0) {
-      return { timeRemaining: Infinity, isExpired: false };
-    }
-
-    const expirationTime = proposal.createdAt + multisig.timelock;
-    const now = Date.now() / 1000;
-    const timeRemaining = Math.max(0, expirationTime - now);
-    const isExpired = timeRemaining === 0;
-
-    return { timeRemaining, isExpired };
+  static createMemberWithVoterPermissions(key: PublicKey): MemberConfig {
+    return {
+      key,
+      permissions: multisig.types.Permissions.fromPermissions([
+        multisig.types.Permission.Vote,
+      ]),
+    };
   }
 
   /**
-   * Format proposal status for display
+   * Helper to create a member config with custom permissions
    */
-  static formatProposalStatus(proposal: SquadsProposal): string {
-    switch (proposal.status) {
-      case "Draft":
-        return "Draft";
-      case "Active":
-        return "Active - Voting in Progress";
-      case "ExecuteReady":
-        return "Ready to Execute";
-      case "Executed":
-        return "Executed";
-      case "Rejected":
-        return "Rejected";
-      case "Cancelled":
-        return "Cancelled";
-      case "Stale":
-        return "Stale - Expired";
-      default:
-        return proposal.status;
-    }
+  static createMemberWithCustomPermissions(
+    key: PublicKey,
+    permissions: multisig.types.Permission[]
+  ): MemberConfig {
+    return {
+      key,
+      permissions: multisig.types.Permissions.fromPermissions(permissions),
+    };
+  }
+
+  /**
+   * Get proposal status as string
+   */
+  getProposalStatusString(status: multisig.generated.ProposalStatus): string {
+    if ("active" in status) return "Active";
+    if ("approved" in status) return "Approved";
+    if ("rejected" in status) return "Rejected";
+    if ("cancelled" in status) return "Cancelled";
+    if ("executed" in status) return "Executed";
+    if ("draft" in status) return "Draft";
+    return "Unknown";
   }
 }
+
+// Export types for external use
+export { multisig };
+export type { Permission, Permissions, Period } from "@sqds/multisig/lib/types";
+export type { ProposalStatus } from "@sqds/multisig/lib/generated/types/ProposalStatus";
