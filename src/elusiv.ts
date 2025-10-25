@@ -1,5 +1,9 @@
 import { Connection, PublicKey, Keypair, Transaction } from "@solana/web3.js";
-import { createAssociatedTokenAccountIdempotent } from "@solana/spl-token";
+import {
+  Token,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 import {
   Elusiv,
   getTokenInfo,
@@ -98,6 +102,61 @@ export class ElusivClient {
   }
 
   /**
+   * Get or create associated token account (idempotent)
+   * Returns existing ATA if it exists, creates new one if it doesn't
+   */
+  private async getOrCreateAssociatedTokenAccount(
+    mint: PublicKey,
+    owner: PublicKey,
+    payer: Keypair
+  ): Promise<PublicKey> {
+    try {
+      // Get the associated token address
+      const associatedTokenAddress = await Token.getAssociatedTokenAddress(
+        ASSOCIATED_TOKEN_PROGRAM_ID,
+        TOKEN_PROGRAM_ID,
+        mint,
+        owner
+      );
+
+      // Try to get account info to see if it exists
+      const accountInfo = await this.connection.getAccountInfo(
+        associatedTokenAddress
+      );
+
+      if (accountInfo) {
+        // Account already exists, return it
+        return associatedTokenAddress;
+      }
+
+      // Account doesn't exist, create it
+      const transaction = new Transaction().add(
+        Token.createAssociatedTokenAccountInstruction(
+          ASSOCIATED_TOKEN_PROGRAM_ID,
+          TOKEN_PROGRAM_ID,
+          mint,
+          associatedTokenAddress,
+          owner,
+          payer.publicKey
+        )
+      );
+
+      const signature = await this.connection.sendTransaction(transaction, [
+        payer,
+      ]);
+      await this.connection.confirmTransaction(
+        signature,
+        this.config.commitment || "confirmed"
+      );
+
+      return associatedTokenAddress;
+    } catch (error) {
+      console.error("Error in getOrCreateAssociatedTokenAccount:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Get supported tokens by Elusiv protocol
    */
   public getSupportedTokens(): TokenType[] {
@@ -151,16 +210,17 @@ export class ElusivClient {
             this.cluster === "devnet"
               ? tokenInfo.mintDevnet
               : tokenInfo.mintMainnet;
-          const ata = await createAssociatedTokenAccountIdempotent(
-            this.connection,
-            this.keypair,
+
+          const ata = await Token.getAssociatedTokenAddress(
+            ASSOCIATED_TOKEN_PROGRAM_ID,
+            TOKEN_PROGRAM_ID,
             mintAddress,
-            this.keypair.publicKey,
-            { commitment: this.config.commitment || "confirmed" }
+            this.keypair.publicKey
           );
 
           const tokenAccount = await this.connection.getTokenAccountBalance(
-            ata
+            ata,
+            this.config.commitment || "confirmed"
           );
           publicBalance = BigInt(tokenAccount.value.amount);
         } catch {
@@ -403,12 +463,10 @@ export class ElusivClient {
         console.log(`Airdropped ${amount} SOL`);
       } else {
         const mintAddress = tokenInfo.mintDevnet;
-        const ata = await createAssociatedTokenAccountIdempotent(
-          this.connection,
-          this.keypair,
+        const ata = await this.getOrCreateAssociatedTokenAccount(
           mintAddress,
           this.keypair.publicKey,
-          { commitment: this.config.commitment || "confirmed" }
+          this.keypair
         );
 
         await airdropToken(token, lamportAmount, ata);
@@ -440,6 +498,88 @@ export class ElusivClient {
    */
   public isInitialized(): boolean {
     return !!this.elusivInstance && !!this.keypair;
+  }
+
+  /**
+   * Get all account balances (public and private) for all supported tokens
+   */
+  public async getAllBalances(): Promise<ElusivBalanceInfo[]> {
+    if (!this.elusivInstance || !this.keypair) {
+      throw new Error("Elusiv not initialized. Call initialize() first.");
+    }
+
+    const tokens = this.getSupportedTokens();
+    const balances: ElusivBalanceInfo[] = [];
+
+    for (const token of tokens) {
+      try {
+        const balance = await this.getBalances(token);
+        balances.push(balance);
+      } catch (error) {
+        console.error(`Error fetching balance for ${token}:`, error);
+      }
+    }
+
+    return balances;
+  }
+
+  /**
+   * Estimate transaction fee for a private transfer
+   */
+  public async estimatePrivateTransferFee(
+    token: TokenType,
+    amount: number
+  ): Promise<{ fee: number; feeInSOL: string }> {
+    if (!this.elusivInstance) {
+      throw new Error("Elusiv not initialized. Call initialize() first.");
+    }
+
+    try {
+      const tokenInfo = this.getTokenInfo(token);
+      const lamportAmount = amount * 10 ** tokenInfo.decimals;
+
+      // Elusiv transactions typically cost around 0.001-0.002 SOL
+      // This is an estimate as exact fees depend on network conditions
+      const estimatedFee = 1_500_000; // 0.0015 SOL in lamports
+
+      return {
+        fee: estimatedFee,
+        feeInSOL: (estimatedFee / 1e9).toString(),
+      };
+    } catch (error) {
+      throw new Error(`Failed to estimate fee: ${error}`);
+    }
+  }
+
+  /**
+   * Check if sufficient private balance exists for a transfer
+   */
+  public async canSendPrivateTransfer(
+    token: TokenType,
+    amount: number
+  ): Promise<{ canSend: boolean; currentBalance: string; required: string }> {
+    if (!this.elusivInstance) {
+      throw new Error("Elusiv not initialized. Call initialize() first.");
+    }
+
+    try {
+      const tokenInfo = this.getTokenInfo(token);
+      const lamportAmount = amount * 10 ** tokenInfo.decimals;
+      const privateBalance = await this.elusivInstance.getLatestPrivateBalance(
+        token
+      );
+
+      return {
+        canSend: privateBalance >= BigInt(lamportAmount),
+        currentBalance: (
+          Number(privateBalance) /
+          10 ** tokenInfo.decimals
+        ).toString(),
+        required: amount.toString(),
+      };
+    } catch (error) {
+      throw new Error(`Failed to check transfer eligibility: ${error}`);
+    }
   }
 }
 
