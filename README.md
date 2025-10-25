@@ -16,88 +16,155 @@ pnpm add forgexai-sdk
 
 - **Comprehensive Protocol Support**: Interact with 21+ Solana ecosystem protocols including Jupiter, Kamino, Marinade, Raydium, Drift, Tensor, Pyth, Squads, Mayan Finance, Sanctum, Meteora, MarginFi, Helius, Elusiv, Solend, Birdeye, Clockwork, Crossmint, DexScreener, Dialect, and Shyft
 - **Cross-Chain Capabilities**: Execute cross-chain swaps between Solana and other blockchains (Ethereum, BNB Chain, Avalanche, etc.) using Mayan Finance
-- **Privacy Features**: Private transactions and balance protection using Elusiv
-- **Lending & Borrowing**: Access decentralized lending markets through Solend and MarginFi
-- **Market Data & Analytics**: Real-time price data, DEX analytics, and market insights from Birdeye and DexScreener
-- **Wallet Infrastructure**: Simplified wallet creation and management through Crossmint
-- **Notifications & Messaging**: Web3 communications via Dialect
-- **Automation**: Schedule and automate transactions using Clockwork
-- **Blockchain Data**: Comprehensive on-chain data access through Shyft APIs
-- **Wallet Integration**: Simple interfaces for working with Solana wallets
+- **Privacy Features**: Private transactions and balance protection using Elusiv zero-knowledge proofs
+- **Lending & Borrowing**: Access decentralized lending markets through Solend and MarginFi with advanced yield strategies
+- **Market Data & Analytics**: Real-time price data, DEX analytics, arbitrage detection, and comprehensive market insights
+- **Wallet Infrastructure**: Simplified wallet creation, management, and Web3 onboarding through Crossmint
+- **Notifications & Messaging**: Web3 communications, smart notifications, and community features via Dialect
+- **Automation**: Schedule and automate transactions, create recurring payments using Clockwork
+- **Blockchain Data**: Comprehensive on-chain data access, NFT analytics, and transaction monitoring through Shyft APIs
+- **Wallet Integration**: Simple interfaces for working with all major Solana wallets
 - **Type Safety**: Full TypeScript support with comprehensive type definitions
-- **Well-Documented**: Clear examples and documentation for all supported features
+- **Well-Documented**: Clear examples, comprehensive demos, and documentation for all supported features
 
-## Usage Examples
+## Quick Start
 
-### Initialize a Connection
+### Basic Setup
 
 ```typescript
-import { Connection } from "@solana/web3.js";
-import { getConnection } from "forgexai-sdk";
+import { ForgexSDK } from "forgexai-sdk";
 
-// Get a connection with automatic retry and reconnection handling
-const connection = getConnection("mainnet-beta");
+// Initialize the SDK
+const sdk = new ForgexSDK({
+  // Configure API keys for specific protocols
+  jupiter: { apiKey: "your-jupiter-key" },
+  birdeye: { apiKey: "your-birdeye-key" },
+  helius: { apiKey: "your-helius-key" },
+  // ... other protocol configurations
+});
+
+// Connect a wallet
+await sdk.connectWallet(yourWalletInstance);
 ```
 
-### Jupiter Swap
+### Example: Jupiter Token Swap
 
 ```typescript
-import { jupiterSwap } from "forgexai-sdk";
-import { Connection, PublicKey } from "@solana/web3.js";
-
-const performSwap = async () => {
-  const connection = new Connection("https://api.mainnet-beta.solana.com");
-  const walletPublicKey = new PublicKey("your-wallet-address");
-
-  const result = await jupiterSwap({
-    connection,
-    wallet: walletPublicKey,
-    fromToken: "SOL",
-    toToken: "USDC",
-    amount: 1.0,
-    slippage: 0.5,
-  });
-
-  console.log("Swap successful:", result);
-};
+const swapResult = await sdk.jupiter.swap({
+  fromToken: "SOL",
+  toToken: "USDC", 
+  amount: 1.0,
+  slippage: 0.5
+});
+console.log("Swap completed:", swapResult.signature);
 ```
 
-### Kamino Finance Integration
+### Example: Cross-Chain Bridge
 
 ```typescript
-import { getKaminoPositions } from "forgexai-sdk";
-import { Connection, PublicKey } from "@solana/web3.js";
-
-const getPositions = async () => {
-  const connection = new Connection("https://api.mainnet-beta.solana.com");
-  const walletPublicKey = new PublicKey("your-wallet-address");
-
-  const positions = await getKaminoPositions({
-    connection,
-    wallet: walletPublicKey,
-  });
-
-  console.log("Kamino positions:", positions);
-};
+const bridgeResult = await sdk.mayan.crossChainSwap({
+  fromChain: "solana",
+  toChain: "ethereum", 
+  fromToken: "USDC",
+  toToken: "USDC",
+  amount: 100,
+  destinationAddress: "0x..."
+});
 ```
 
-### Staking with Marinade
+## Comprehensive Examples
 
-```typescript
-import { marinadeDeposit } from "forgexai-sdk";
-import { Connection, PublicKey } from "@solana/web3.js";
+The SDK includes detailed examples for every supported protocol. Each example demonstrates real-world usage patterns, advanced features, and best practices:
 
-const stakeSOL = async () => {
-  const connection = new Connection("https://api.mainnet-beta.solana.com");
-  const walletPublicKey = new PublicKey("your-wallet-address");
+### Core DeFi Protocols
+- **[Jupiter](examples/jupiter-example.js)** - Advanced token swapping, route optimization, price impact analysis
+- **[Raydium](examples/raydium-example.js)** - Liquidity provision, yield farming, concentrated liquidity strategies  
+- **[Kamino](examples/kamino-example.js)** - Automated position management, leverage strategies, risk optimization
+- **[MarginFi](examples/marginfi-example.js)** - Lending, borrowing, margin trading, risk management
+- **[Drift](examples/drift-example.js)** - Perpetual trading, market making, advanced order types
 
-  const result = await marinadeDeposit({
-    connection,
-    wallet: walletPublicKey,
-    amount: 5, // SOL
-  });
+### Market Data & Analytics
+- **[Birdeye](examples/birdeye-example.js)** - Comprehensive market data, price analytics, portfolio tracking
+- **[DexScreener](examples/dexscreener-example.js)** - DEX analytics, arbitrage detection, liquidity monitoring
+- **[Pyth](examples/pyth-example.js)** - Real-time price feeds, confidence intervals, custom oracles
 
-  console.log("Staking successful:", result);
+### Infrastructure & Tools  
+- **[Helius](examples/helius-example.js)** - Enhanced RPC, webhooks, transaction parsing, compression
+- **[Shyft](examples/shyft-example.js)** - Blockchain analytics, NFT tracking, transaction monitoring
+- **[Clockwork](examples/clockwork-example.js)** - Transaction automation, recurring payments, cron jobs
+
+### Privacy & Security
+- **[Elusiv](examples/elusiv-example.js)** - Private transactions, zero-knowledge proofs, compliance tools
+- **[Squads](examples/squads-example.js)** - Multi-signature wallets, team treasury management
+
+### Cross-Chain & Bridges
+- **[Mayan](examples/mayan-example.js)** - Cross-chain swaps, bridge monitoring, multi-chain strategies
+- **[Sanctum](examples/sanctum-example.js)** - Liquid staking tokens, yield optimization
+
+### Communication & Community
+- **[Dialect](examples/dialect-example.js)** - Web3 messaging, smart notifications, community features
+
+### Staking & Yield
+- **[Marinade](examples/marinade-example.js)** - Liquid staking, validator selection, reward optimization
+- **[Solend](examples/solend-example.js)** - Lending markets, borrowing strategies, yield farming
+
+### Developer Tools
+- **[Crossmint](examples/crossmint-example.js)** - Wallet creation, Web3 onboarding, developer infrastructure
+- **[Meteora](examples/meteora-example.js)** - Dynamic AMM pools, yield strategies
+
+### Trading & Orders
+- **[Tensor](examples/tensor-example.js)** - NFT trading, collection analytics, market making
+
+Each example includes:
+- 🏗️ **Setup & Configuration** - API key setup, initialization patterns
+- 🔧 **Core Operations** - Main protocol features and common use cases  
+- 📊 **Analytics & Monitoring** - Performance tracking, market insights
+- ⚡ **Advanced Strategies** - Power-user features, optimization techniques
+- 🎯 **Real-World Scenarios** - Practical implementation examples
+
+## Key Features by Category
+
+### 🔄 **DeFi Trading & Swapping**
+- **Jupiter**: Best-in-class token swapping with optimal routing
+- **Raydium**: Concentrated liquidity and automated market making
+- **Drift**: Perpetual futures and derivatives trading
+- **Tensor**: NFT trading and portfolio management
+
+### 🏦 **Lending & Borrowing**  
+- **Solend**: Decentralized lending with multiple asset pools
+- **MarginFi**: Advanced margin trading and risk management
+- **Kamino**: Automated yield strategies and position optimization
+
+### 📊 **Market Data & Analytics**
+- **Birdeye**: Comprehensive DeFi analytics and portfolio tracking
+- **DexScreener**: Real-time DEX data and arbitrage opportunities  
+- **Pyth**: High-frequency price feeds and oracle data
+- **Shyft**: On-chain analytics and transaction monitoring
+
+### 🔒 **Privacy & Security**
+- **Elusiv**: Zero-knowledge private transactions
+- **Squads**: Multi-signature wallet infrastructure
+- **Enhanced Security**: Built-in transaction verification and safety checks
+
+### 🌉 **Cross-Chain Infrastructure**
+- **Mayan Finance**: Seamless cross-chain swaps and bridges
+- **Multi-Chain Support**: Connect Solana with 10+ other blockchains
+- **Bridge Monitoring**: Real-time bridge status and fee optimization
+
+### 💰 **Staking & Yield Optimization**
+- **Marinade**: Liquid staking with automated validator selection
+- **Sanctum**: Advanced liquid staking token strategies
+- **Meteora**: Dynamic AMM and yield farming optimization
+
+### 🛠️ **Developer Infrastructure**
+- **Helius**: Enhanced RPC with webhooks and transaction parsing
+- **Crossmint**: Simplified Web3 onboarding and wallet creation
+- **Clockwork**: Transaction automation and scheduling
+
+### 💬 **Communication & Community**
+- **Dialect**: Web3 messaging, notifications, and community tools
+- **Smart Notifications**: Protocol-aware alert systems
+- **Community Features**: DAO communication and governance tools
 };
 ```
 
@@ -273,22 +340,103 @@ npm run build
 npm test
 ```
 
-## License
+## Getting Started
 
-MIT
+### Environment Setup
+
+```bash
+# Clone the repository  
+git clone https://github.com/your-org/forgexai-sdk
+cd forgexai-sdk
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Add your API keys to .env file
+```
+
+### Running Examples
+
+Each protocol example can be run independently:
+
+```bash
+# Run specific protocol examples
+node examples/jupiter-example.js
+node examples/birdeye-example.js  
+node examples/elusiv-example.js
+
+# Set environment variables for API keys
+export JUPITER_API_KEY="your-key"
+export BIRDEYE_API_KEY="your-key"
+node examples/jupiter-example.js
+```
+
+## Advanced Usage
+
+### Error Handling
+
+```typescript
+try {
+  const result = await sdk.jupiter.swap({
+    fromToken: "SOL",
+    toToken: "USDC", 
+    amount: 1.0
+  });
+} catch (error) {
+  if (error.code === 'INSUFFICIENT_BALANCE') {
+    console.log('Not enough balance for swap');
+  } else if (error.code === 'SLIPPAGE_EXCEEDED') {
+    console.log('Price moved too much during swap');
+  }
+}
+```
+
+### Custom Configuration
+
+```typescript
+const sdk = new ForgexSDK({
+  // Custom RPC endpoint
+  rpcEndpoint: "https://your-custom-rpc.com",
+  
+  // Protocol-specific settings  
+  jupiter: {
+    apiKey: "your-key",
+    slippageBps: 50, // 0.5%
+    priorityFee: 0.001 // SOL
+  },
+  
+  // Global settings
+  timeout: 30000,
+  retries: 3
+});
+```
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.To install dependencies:
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-```bash
-bun install
-```
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)  
+5. Open a Pull Request
 
-To run:
+## License
 
-```bash
-bun run index.ts
-```
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-This project was created using `bun init` in bun v1.2.6. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+## Support & Community
+
+- 📚 [Documentation](https://docs.forgex.ai)
+- 💬 [Discord Community](https://discord.gg/forgex)  
+- 🐛 [Issue Tracker](https://github.com/your-org/forgexai-sdk/issues)
+- 📧 [Email Support](mailto:support@forgex.ai)
+- 🐦 [Twitter](https://twitter.com/forgex_ai)
+
+---
+
+**Built with ❤️ for the Solana ecosystem**
+
+ForgeX SDK - Empowering developers to build the future of DeFi
