@@ -1,404 +1,215 @@
-import axios from "axios";
-import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import {
+  Marinade,
+  MarinadeConfig,
+  Wallet,
+  Provider as MarinadeProvider,
+  getRefNativeStakeSOLTx,
+  getRefNativeStakeAccountTx,
+  getPrepareNativeUnstakeSOLIx,
+  BN,
+} from "@marinade.finance/marinade-ts-sdk";
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 
-const MARINADE_API = "https://api.marinade.finance";
-const JITO_API = "https://kobe.mainnet.jito.network/api/v1";
+/**
+ * Service class for interacting with Marinade Finance staking and liquidity pools.
+ */
+export class MarinadeService {
+  private connection: Connection;
+  private wallet: Wallet;
+  private provider: MarinadeProvider;
+  private marinade: Marinade;
 
-const MARINADE_PROGRAM_ID = new PublicKey(
-  "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD"
-);
+  /**
+   * Initialize Marinade SDK with connection and Wallet object.
+   * You can use your own Wallet implementation or pass a public key for view-only actions.
+   * @param rpcUrl The Solana RPC endpoint.
+   * @param wallet Wallet instance (from marinade-ts-sdk or custom).
+   * @param referralCode Optional referral public key.
+   */
+  constructor(rpcUrl: string, wallet: Wallet, referralCode?: PublicKey) {
+    this.connection = new Connection(rpcUrl, "confirmed");
+    this.wallet = wallet;
 
-export interface MarinadeStakingInfo {
-  token: "mSOL" | "jitoSOL" | "bSOL";
-  apy: number;
-  tvl: number;
-  exchangeRate: number;
-  totalStaked: number;
-  totalValidators?: number;
-  fee?: number;
-  timestamp: number;
+    // Marinade config, add referral if needed
+    const config = new MarinadeConfig({
+      connection: this.connection,
+      publicKey: this.wallet.publicKey,
+      referralCode,
+    });
+
+    this.marinade = new Marinade(config);
+
+    this.provider = this.marinade.provider;
+  }
+
+  /** Get underlying Marinade instance (for advanced calls). */
+  getMarinade(): Marinade {
+    return this.marinade;
+  }
+
+  /** Get current connection. */
+  getConnection(): Connection {
+    return this.connection;
+  }
+
+  /** Get current wallet. */
+  getWallet(): Wallet {
+    return this.wallet;
+  }
+
+  /** Get current provider. */
+  getProvider(): MarinadeProvider {
+    return this.provider;
+  }
+
+  // =========================
+  // Liquid Staking Operations
+  // =========================
+
+  /**
+   * Stake SOL to receive mSOL (liquid staking).
+   * @param lamports Amount of SOL in lamports.
+   * @returns Transaction, associated mSOL token account.
+   */
+  async deposit(lamports: BN) {
+    const { associatedMSolTokenAccountAddress, transaction } =
+      await this.marinade.deposit(lamports);
+    return { associatedMSolTokenAccountAddress, transaction };
+  }
+
+  /**
+   * Liquid unstake: swap mSOL for SOL instantly via Marinade pool.
+   * @param lamports Amount of mSOL in lamports.
+   * @returns Transaction, associated mSOL token account.
+   */
+  async liquidUnstake(lamports: BN) {
+    const { associatedMSolTokenAccountAddress, transaction } =
+      await this.marinade.liquidUnstake(lamports);
+    return { associatedMSolTokenAccountAddress, transaction };
+  }
+
+  // =========================
+  // Marinade Native Staking & Referral Workflows
+  // =========================
+
+  /**
+   * Native staking of SOL with referral code (returns VersionedTransaction).
+   * @param userPublicKey
+   * @param lamports Amount to stake.
+   * @param referralCode Referral public key.
+   */
+  async stakeNativeWithReferral(
+    userPublicKey: PublicKey,
+    lamports: BN,
+    referralCode: string
+  ) {
+    const versionedTransaction = await getRefNativeStakeSOLTx(
+      userPublicKey,
+      lamports,
+      referralCode
+    );
+    return versionedTransaction;
+  }
+
+  /**
+   * Deposit stake account to Marinade Native with referral code.
+   * @param userPublicKey
+   * @param stakeAccountAddress
+   * @param referralCode Referral public key.
+   */
+  async depositStakeNativeWithReferral(
+    userPublicKey: PublicKey,
+    stakeAccountAddress: PublicKey,
+    referralCode: string
+  ) {
+    const versionedTransaction = await getRefNativeStakeAccountTx(
+      userPublicKey,
+      stakeAccountAddress,
+      referralCode
+    );
+    return versionedTransaction;
+  }
+
+  /**
+   * Prepare and pay fees for Marinade Native unstake.
+   * Merges stake accounts and pays fee in SOL.
+   * @param userPublicKey
+   * @param lamports Amount to unstake.
+   */
+  async prepareNativeUnstake(userPublicKey: PublicKey, lamports: BN) {
+    const transaction = new Transaction();
+    const prepareIx = await getPrepareNativeUnstakeSOLIx(
+      userPublicKey,
+      lamports
+    );
+    transaction.add(...prepareIx.payFees);
+    return transaction;
+  }
+
+  // =========================
+  // Liquidity Pool Operations
+  // =========================
+
+  /** Add liquidity to Marinade pool and receive LP tokens. */
+  async addLiquidity(lamports: BN) {
+    const { associatedLPTokenAccountAddress, transaction } =
+      await this.marinade.addLiquidity(lamports);
+    return { associatedLPTokenAccountAddress, transaction };
+  }
+
+  /**
+   * Remove liquidity from Marinade pool, burning LP tokens.
+   * @param lamports Amount of LP tokens to burn.
+   * @returns Addresses of LP, mSOL accounts and transaction.
+   */
+  async removeLiquidity(lamports: number) {
+    const {
+      associatedLPTokenAccountAddress,
+      associatedMSolTokenAccountAddress,
+      transaction,
+    } = await this.marinade.removeLiquidity(new BN(lamports));
+    return {
+      associatedLPTokenAccountAddress,
+      associatedMSolTokenAccountAddress,
+      transaction,
+    };
+  }
+
+  // =========================
+  // Lookup Table Utilities
+  // =========================
+
+  /**
+   * Marinade address lookup table (used for fee estimation, routing, and CPI).
+   */
+  static readonly LOOKUP_TABLE = new PublicKey(
+    "DCcQeBaCiYsEsjjmEsSYPCr9o4n174LKqXNDvQT5wVd8"
+  );
 }
 
-export interface MarinadeValidatorInfo {
-  voteAccount: string;
-  name?: string;
-  identity?: string;
-  commission: number;
-  isActive: boolean;
-  stake: number;
-  apy?: number;
-}
+// Example usage
 
-export interface MarinadeTransactionParams {
-  amount: number;
-  userPublicKey: string;
-  referrerAccount?: string;
-}
+/*
+import { Keypair, PublicKey } from "@solana/web3.js";
+import { Wallet } from '@marinade.finance/marinade-ts-sdk';
 
-export interface MarinadeTransactionResult {
-  transaction: string;
-  lastValidBlockHeight?: number;
-  priorityFee?: number;
-}
+const keypair = Keypair.generate();
+const wallet = new Wallet(keypair);
+const service = new MarinadeService('https://api.mainnet-beta.solana.com', wallet);
 
-export interface MarinadePoolInfo {
-  tvl: number;
-  totalStakers: number;
-  validators: number;
-  averageApy: number;
-  stakingFee: number;
-  unstakingFee: number;
-  marinadeOwedLamports: number;
-  reserveAccount: string;
-  msolSupply: number;
-  solLeg: number;
-  msolLeg: number;
-}
+// --- Stake 1 SOL (1_000_000_000 lamports)
+const { transaction, associatedMSolTokenAccountAddress } = await service.deposit(1_000_000_000);
 
-export class MarinadeClient {
-  constructor(private connection: Connection) {}
+// --- Liquid unstake 0.5 SOL equivalent in mSOL
+const { transaction: unstakeTx } = await service.liquidUnstake(500_000_000);
 
-  /**
-   * Get staking APY for liquid staking tokens
-   */
-  async getStakingAPY(
-    token: "mSOL" | "jitoSOL" | "bSOL" = "mSOL"
-  ): Promise<MarinadeStakingInfo> {
-    try {
-      if (token === "mSOL") {
-        const [apyResponse, tvlResponse, priceResponse] = await Promise.all([
-          axios.get(`${MARINADE_API}/msol/apy/7d`),
-          axios.get(`${MARINADE_API}/msol/tvl`),
-          axios.get(`${MARINADE_API}/msol/price`),
-        ]);
+// --- Add liquidity to pool
+const { transaction: addLiquidityTx } = await service.addLiquidity(500_000_000);
 
-        return {
-          token: "mSOL",
-          apy: apyResponse.data.value || 0,
-          tvl: tvlResponse.data.total_staked_sol || 0,
-          exchangeRate: priceResponse.data.price || 1,
-          totalStaked: tvlResponse.data.total_staked_sol || 0,
-          totalValidators: tvlResponse.data.validators_count || 0,
-          fee: 0,
-          timestamp: Date.now(),
-        };
-      } else if (token === "jitoSOL") {
-        const response = await axios.get(`${JITO_API}/apy/current`);
+// --- Remove liquidity
+const { transaction: removeLiquidityTx } = await service.removeLiquidity(500_000_000);
 
-        return {
-          token: "jitoSOL",
-          apy: response.data.apy || 0,
-          tvl: response.data.tvl || 0,
-          exchangeRate: response.data.exchange_rate || 1,
-          totalStaked: response.data.total_staked || 0,
-          fee: response.data.fee || 0,
-          timestamp: Date.now(),
-        };
-      } else {
-        throw new Error("bSOL not yet supported");
-      }
-    } catch (error: any) {
-      throw new Error(
-        `Failed to get staking APY for ${token}: ${error.message}`
-      );
-    }
-  }
+// All transactions can be signed and sent via your wallet/provider.
+*/
 
-  /**
-   * Get current mSOL price relative to SOL
-   */
-  async getMsolPrice(): Promise<{ price: number; priceChange24h?: number }> {
-    try {
-      const response = await axios.get(`${MARINADE_API}/msol/price`);
-      return {
-        price: response.data.price || 1,
-        priceChange24h: response.data.price_change_24h,
-      };
-    } catch (error: any) {
-      throw new Error(`Failed to get mSOL price: ${error.message}`);
-    }
-  }
-
-  /**
-   * Get comprehensive Marinade protocol statistics
-   */
-  async getMarinadeStats(): Promise<MarinadePoolInfo> {
-    try {
-      const [stakingInfo, validators, price] = await Promise.all([
-        this.getStakingAPY("mSOL"),
-        this.getValidators(),
-        this.getMsolPrice(),
-      ]);
-
-      return {
-        tvl: stakingInfo.tvl,
-        totalStakers: 0,
-        validators: stakingInfo.totalValidators || 0,
-        averageApy: stakingInfo.apy,
-        stakingFee: 0,
-        unstakingFee: 0.3,
-        marinadeOwedLamports: 0,
-        reserveAccount: "",
-        msolSupply: 0,
-        solLeg: stakingInfo.totalStaked,
-        msolLeg: stakingInfo.totalStaked / price.price,
-      };
-    } catch (error: any) {
-      throw new Error(`Failed to get Marinade stats: ${error.message}`);
-    }
-  }
-
-  /**
-   * Get list of validators in Marinade stake pool
-   */
-  async getValidators(): Promise<MarinadeValidatorInfo[]> {
-    try {
-      const response = await axios.get(`${MARINADE_API}/validators`);
-
-      return response.data.map((validator: any) => ({
-        voteAccount: validator.vote_account,
-        name: validator.name,
-        identity: validator.identity,
-        commission: validator.commission || 0,
-        isActive: validator.is_active || false,
-        stake: validator.stake || 0,
-        apy: validator.apy,
-      }));
-    } catch (error: any) {
-      throw new Error(`Failed to get validators: ${error.message}`);
-    }
-  }
-
-  /**
-   * Build stake transaction (SOL -> mSOL)
-   */
-  async buildStakeTransaction(
-    params: MarinadeTransactionParams
-  ): Promise<MarinadeTransactionResult> {
-    try {
-      const response = await axios.post(`${MARINADE_API}/transactions/stake`, {
-        amount: params.amount * LAMPORTS_PER_SOL,
-        userPublicKey: params.userPublicKey,
-        referrerAccount: params.referrerAccount,
-      });
-
-      if (!response.data || !response.data.transaction) {
-        throw new Error("Failed to build stake transaction");
-      }
-
-      return {
-        transaction: response.data.transaction,
-        lastValidBlockHeight: response.data.lastValidBlockHeight,
-        priorityFee: response.data.priorityFee,
-      };
-    } catch (error: any) {
-      throw new Error(
-        `Failed to build stake transaction: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
-
-  /**
-   * Build unstake transaction (mSOL -> SOL)
-   */
-  async buildUnstakeTransaction(
-    params: MarinadeTransactionParams
-  ): Promise<MarinadeTransactionResult> {
-    try {
-      const response = await axios.post(
-        `${MARINADE_API}/transactions/unstake`,
-        {
-          amount: params.amount * LAMPORTS_PER_SOL,
-          userPublicKey: params.userPublicKey,
-        }
-      );
-
-      if (!response.data || !response.data.transaction) {
-        throw new Error("Failed to build unstake transaction");
-      }
-
-      return {
-        transaction: response.data.transaction,
-        lastValidBlockHeight: response.data.lastValidBlockHeight,
-        priorityFee: response.data.priorityFee,
-      };
-    } catch (error: any) {
-      throw new Error(
-        `Failed to build unstake transaction: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
-
-  /**
-   * Build liquid unstake transaction (mSOL -> SOL instantly with fee)
-   */
-  async buildLiquidUnstakeTransaction(
-    params: MarinadeTransactionParams
-  ): Promise<MarinadeTransactionResult> {
-    try {
-      const response = await axios.post(
-        `${MARINADE_API}/transactions/liquid-unstake`,
-        {
-          amount: params.amount * LAMPORTS_PER_SOL,
-          userPublicKey: params.userPublicKey,
-        }
-      );
-
-      if (!response.data || !response.data.transaction) {
-        throw new Error("Failed to build liquid unstake transaction");
-      }
-
-      return {
-        transaction: response.data.transaction,
-        lastValidBlockHeight: response.data.lastValidBlockHeight,
-        priorityFee: response.data.priorityFee,
-      };
-    } catch (error: any) {
-      throw new Error(
-        `Failed to build liquid unstake transaction: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
-
-  /**
-   * Get unstaking tickets for a wallet
-   */
-  async getUnstakingTickets(walletAddress: string): Promise<
-    Array<{
-      ticketAccount: string;
-      beneficiary: string;
-      amount: number;
-      createdEpoch: number;
-      claimableEpoch: number;
-      isClaimable: boolean;
-    }>
-  > {
-    try {
-      const response = await axios.get(
-        `${MARINADE_API}/unstaking-tickets/${walletAddress}`
-      );
-
-      return response.data.map((ticket: any) => ({
-        ticketAccount: ticket.account,
-        beneficiary: ticket.beneficiary,
-        amount: ticket.amount / LAMPORTS_PER_SOL,
-        createdEpoch: ticket.created_epoch,
-        claimableEpoch: ticket.claimable_epoch,
-        isClaimable: ticket.is_claimable,
-      }));
-    } catch (error: any) {
-      throw new Error(`Failed to get unstaking tickets: ${error.message}`);
-    }
-  }
-
-  /**
-   * Get historical APY data
-   */
-  async getHistoricalApy(
-    token: "mSOL" | "jitoSOL" = "mSOL",
-    days: number = 30
-  ): Promise<Array<{ timestamp: number; apy: number }>> {
-    try {
-      if (token === "mSOL") {
-        const response = await axios.get(
-          `${MARINADE_API}/msol/apy/history?days=${days}`
-        );
-
-        return response.data.map((item: any) => ({
-          timestamp: item.timestamp,
-          apy: item.apy,
-        }));
-      } else {
-        const response = await axios.get(
-          `${JITO_API}/apy/history?days=${days}`
-        );
-
-        return response.data.map((item: any) => ({
-          timestamp: item.timestamp,
-          apy: item.apy,
-        }));
-      }
-    } catch (error: any) {
-      throw new Error(`Failed to get historical APY: ${error.message}`);
-    }
-  }
-
-  /**
-   * Compare staking options (mSOL vs jitoSOL)
-   */
-  async compareStakingOptions(): Promise<{
-    mSOL: MarinadeStakingInfo;
-    jitoSOL: MarinadeStakingInfo;
-    recommendation: string;
-  }> {
-    try {
-      const [msolInfo, jitosolInfo] = await Promise.all([
-        this.getStakingAPY("mSOL"),
-        this.getStakingAPY("jitoSOL"),
-      ]);
-
-      let recommendation = "mSOL";
-      if (jitosolInfo.apy > msolInfo.apy) {
-        recommendation = "jitoSOL (higher APY)";
-      } else if (msolInfo.tvl > jitosolInfo.tvl * 2) {
-        recommendation = "mSOL (higher TVL, more established)";
-      }
-
-      return {
-        mSOL: msolInfo,
-        jitoSOL: jitosolInfo,
-        recommendation,
-      };
-    } catch (error: any) {
-      throw new Error(`Failed to compare staking options: ${error.message}`);
-    }
-  }
-
-  /**
-   * Utility method to convert SOL to lamports
-   */
-  static toLamports(sol: number): number {
-    return Math.floor(sol * LAMPORTS_PER_SOL);
-  }
-
-  /**
-   * Utility method to convert lamports to SOL
-   */
-  static fromLamports(lamports: number): number {
-    return lamports / LAMPORTS_PER_SOL;
-  }
-
-  /**
-   * Calculate staking rewards over time
-   */
-  static calculateStakingRewards(
-    principal: number,
-    apy: number,
-    days: number
-  ): { totalRewards: number; finalAmount: number } {
-    const dailyRate = apy / 365 / 100;
-    const finalAmount = principal * Math.pow(1 + dailyRate, days);
-    const totalRewards = finalAmount - principal;
-
-    return { totalRewards, finalAmount };
-  }
-
-  /**
-   * Calculate unstaking fee
-   */
-  static calculateUnstakingFee(
-    amount: number,
-    isLiquidUnstake: boolean = false
-  ): number {
-    if (isLiquidUnstake) {
-      return amount * 0.003;
-    }
-    return 0;
-  }
-}
+export default MarinadeService;
