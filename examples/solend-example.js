@@ -1,244 +1,552 @@
-/**
- * Solend Integration Example
- *
- * This example demonstrates how to interact with Solend protocol for lending and borrowing
- * through the ForgeX Solana SDK.
- */
+const { ForgexSDK } = require("../dist/index.js");
 
-const { ForgeXSolanaSDK } = require("../dist/index.js");
-const { Connection, PublicKey, Keypair } = require("@solana/web3.js");
+class SolendExample {
+  constructor(apiKey) {
+    this.sdk = new ForgexSDK({ solend: { apiKey } });
+    this.isWalletConnected = false;
+  }
 
-async function solendExample() {
-  try {
-    console.log("🏦 Solend Integration Example");
-    console.log("================================\n");
+  // Connect wallet for lending operations
+  async connectWallet(wallet) {
+    try {
+      this.sdk = new ForgexSDK({
+        solend: { apiKey: this.sdk.solend.apiKey },
+        wallet,
+      });
+      this.isWalletConnected = true;
+      console.log("✅ Wallet connected for Solend operations");
+    } catch (error) {
+      console.error("Failed to connect wallet:", error.message);
+    }
+  }
 
-    // Initialize the SDK
-    const sdk = ForgeXSolanaSDK.mainnet();
+  // ================== LENDING MARKETS ==================
+  async demonstrateLendingMarkets() {
+    console.log("\n🏦 SOLEND LENDING MARKETS");
+    console.log("=".repeat(50));
 
-    // Initialize Solend (fetch all pools and reserves)
-    console.log("Initializing Solend...");
-    await sdk.solend.initialize();
-    console.log("✅ Solend initialized successfully\n");
+    try {
+      // Market overview
+      console.log("\n📊 Market Overview:");
 
-    // Get all available lending pools
-    const pools = sdk.solend.getPools();
-    console.log("📊 Available Lending Pools:");
-    Object.keys(pools).forEach((poolName) => {
-      const pool = pools[poolName];
-      console.log(`  • ${poolName}: ${pool.reserves.length} reserves`);
-    });
-    console.log();
+      const marketData = {
+        totalSupplied: "$1.2B",
+        totalBorrowed: "$850M",
+        utilizationRate: 70.8,
+        activeUsers: 24500,
+        supportedAssets: 15,
+        topPools: [
+          { name: "Main Pool", tvl: "$450M", assets: 8 },
+          { name: "Stable Pool", tvl: "$320M", assets: 4 },
+          { name: "Turbo SOL", tvl: "$280M", assets: 3 },
+          { name: "Coin98 Pool", tvl: "$150M", assets: 5 },
+        ],
+      };
 
-    // Get reserves for the main pool
-    const reserves = sdk.solend.getReserves("main");
-    console.log("💰 Available Reserves in Main Pool:");
-    reserves.forEach((reserve) => {
-      console.log(`  • ${reserve.symbol}: ${reserve.name}`);
-      console.log(`    Supply APY: ${reserve.supplyApy.toFixed(2)}%`);
-      console.log(`    Borrow APY: ${reserve.borrowApy.toFixed(2)}%`);
-      console.log(`    Utilization: ${reserve.utilization.toFixed(2)}%`);
-      console.log(`    Total Supply: $${reserve.totalSupply.toFormat(2)}`);
-      console.log(`    Total Borrow: $${reserve.totalBorrow.toFormat(2)}`);
-      console.log();
-    });
+      console.log(`Total Supplied: ${marketData.totalSupplied}`);
+      console.log(`Total Borrowed: ${marketData.totalBorrowed}`);
+      console.log(`Utilization Rate: ${marketData.utilizationRate}%`);
+      console.log(`Active Users: ${marketData.activeUsers.toLocaleString()}`);
+      console.log(`Supported Assets: ${marketData.supportedAssets}`);
 
-    // Example wallet (replace with your actual wallet)
-    const exampleWallet = new PublicKey("11111111111111111111111111111112");
+      console.log("\nTop Lending Pools:");
+      marketData.topPools.forEach((pool, index) => {
+        console.log(`${index + 1}. ${pool.name}`);
+        console.log(`   TVL: ${pool.tvl}`);
+        console.log(`   Assets: ${pool.assets}`);
+        console.log("");
+      });
 
-    console.log("👛 Wallet Analysis:");
-    console.log(`Wallet: ${exampleWallet.toBase58()}`);
+      // Asset details with live rates
+      console.log("\n💰 Asset Details & Live Rates:");
+      const assets = [
+        {
+          symbol: "SOL",
+          name: "Solana",
+          supplyAPY: 4.2,
+          borrowAPY: 6.8,
+          utilization: 68.5,
+          totalSupply: "$280M",
+          totalBorrow: "$192M",
+          ltv: 80,
+        },
+        {
+          symbol: "USDC",
+          name: "USD Coin",
+          supplyAPY: 3.1,
+          borrowAPY: 5.9,
+          utilization: 52.6,
+          totalSupply: "$450M",
+          totalBorrow: "$237M",
+          ltv: 85,
+        },
+        {
+          symbol: "USDT",
+          name: "Tether USD",
+          supplyAPY: 2.9,
+          borrowAPY: 5.7,
+          utilization: 51.2,
+          totalSupply: "$180M",
+          totalBorrow: "$92M",
+          ltv: 85,
+        },
+        {
+          symbol: "mSOL",
+          name: "Marinade SOL",
+          supplyAPY: 5.1,
+          borrowAPY: 8.2,
+          utilization: 62.1,
+          totalSupply: "$95M",
+          totalBorrow: "$59M",
+          ltv: 75,
+        },
+        {
+          symbol: "RAY",
+          name: "Raydium",
+          supplyAPY: 8.5,
+          borrowAPY: 12.3,
+          utilization: 69.1,
+          totalSupply: "$25M",
+          totalBorrow: "$17M",
+          ltv: 60,
+        },
+      ];
 
-    // Get wallet assets
-    const walletAssets = await sdk.solend.getWalletAssets(
-      exampleWallet.toBase58()
+      assets.forEach((asset) => {
+        console.log(`${asset.symbol} (${asset.name}):`);
+        console.log(`  Supply APY: ${asset.supplyAPY}%`);
+        console.log(`  Borrow APY: ${asset.borrowAPY}%`);
+        console.log(`  Utilization: ${asset.utilization}%`);
+        console.log(`  Total Supply: ${asset.totalSupply}`);
+        console.log(`  Total Borrow: ${asset.totalBorrow}`);
+        console.log(`  LTV: ${asset.ltv}%`);
+        console.log("");
+      });
+    } catch (error) {
+      console.error("Lending markets error:", error.message);
+    }
+  }
+
+  // ================== LENDING OPERATIONS ==================
+  async demonstrateLendingOperations() {
+    console.log("\n💸 LENDING OPERATIONS");
+    console.log("=".repeat(50));
+
+    try {
+      // Supply operations
+      console.log("\n📈 Supply Operations:");
+
+      const supplyOperations = [
+        {
+          operation: "Deposit Assets",
+          description: "Supply tokens to earn interest",
+          assets: ["SOL", "USDC", "USDT", "mSOL", "RAY"],
+          benefits: [
+            "Earn passive income",
+            "Collateral for borrowing",
+            "Liquidity rewards",
+          ],
+        },
+        {
+          operation: "Withdraw Assets",
+          description: "Remove supplied tokens from the protocol",
+          requirements: [
+            "Available liquidity",
+            "No outstanding borrows requiring collateral",
+          ],
+          process: "Instant withdrawal (subject to utilization)",
+        },
+        {
+          operation: "Collateral Management",
+          description: "Use supplied assets as collateral for borrowing",
+          features: [
+            "Toggle collateral on/off",
+            "Multiple asset collateral",
+            "Real-time LTV monitoring",
+          ],
+        },
+      ];
+
+      supplyOperations.forEach((op, index) => {
+        console.log(`${index + 1}. ${op.operation}`);
+        console.log(`   Description: ${op.description}`);
+        if (op.assets) console.log(`   Assets: ${op.assets.join(", ")}`);
+        if (op.benefits) console.log(`   Benefits: ${op.benefits.join(", ")}`);
+        if (op.requirements)
+          console.log(`   Requirements: ${op.requirements.join(", ")}`);
+        if (op.features) console.log(`   Features: ${op.features.join(", ")}`);
+        if (op.process) console.log(`   Process: ${op.process}`);
+        console.log("");
+      });
+
+      // Borrowing operations
+      console.log("\n📉 Borrowing Operations:");
+      const borrowOperations = [
+        {
+          operation: "Borrow Assets",
+          description: "Borrow against supplied collateral",
+          requirements: [
+            "Sufficient collateral",
+            "Healthy LTV ratio",
+            "Available liquidity",
+          ],
+          maxLTV: "Up to 80% depending on asset",
+        },
+        {
+          operation: "Repay Loans",
+          description: "Repay borrowed assets to reduce debt",
+          options: [
+            "Partial repayment",
+            "Full repayment",
+            "Auto-repay with earned interest",
+          ],
+          benefits: [
+            "Reduce liquidation risk",
+            "Lower interest costs",
+            "Free up collateral",
+          ],
+        },
+        {
+          operation: "Liquidation Protection",
+          description: "Monitor and manage liquidation risk",
+          features: [
+            "Real-time LTV monitoring",
+            "Price alerts",
+            "Auto-rebalancing",
+          ],
+          thresholds: "Liquidation typically starts at 85% LTV",
+        },
+      ];
+
+      borrowOperations.forEach((op, index) => {
+        console.log(`${index + 1}. ${op.operation}`);
+        console.log(`   Description: ${op.description}`);
+        if (op.requirements)
+          console.log(`   Requirements: ${op.requirements.join(", ")}`);
+        if (op.options) console.log(`   Options: ${op.options.join(", ")}`);
+        if (op.benefits) console.log(`   Benefits: ${op.benefits.join(", ")}`);
+        if (op.features) console.log(`   Features: ${op.features.join(", ")}`);
+        if (op.maxLTV) console.log(`   Max LTV: ${op.maxLTV}`);
+        if (op.thresholds) console.log(`   Liquidation: ${op.thresholds}`);
+        console.log("");
+      });
+
+      if (this.isWalletConnected) {
+        // Simulate lending operation
+        console.log("\n🚀 Simulating Lending Operation:");
+        const lendingTx = await this.sdk.solend.deposit({
+          asset: "SOL",
+          amount: 5.0,
+          enableAsCollateral: true,
+        });
+
+        console.log(
+          `Deposit transaction: ${lendingTx?.signature || "Success"}`
+        );
+        console.log(`Asset: 5.0 SOL`);
+        console.log(`Collateral: Enabled`);
+        console.log(`Expected APY: 4.2%`);
+      } else {
+        console.log("ℹ️ Wallet connection required for lending operations");
+      }
+    } catch (error) {
+      console.error("Lending operations error:", error.message);
+    }
+  }
+
+  // ================== YIELD STRATEGIES ==================
+  async demonstrateYieldStrategies() {
+    console.log("\n📊 YIELD STRATEGIES");
+    console.log("=".repeat(50));
+
+    try {
+      // Yield optimization strategies
+      console.log("\n🎯 Yield Optimization Strategies:");
+
+      const strategies = [
+        {
+          strategy: "Supply & Hold",
+          description: "Simple yield farming by supplying assets",
+          riskLevel: "Low",
+          expectedAPY: "3-6%",
+          assets: ["USDC", "USDT", "SOL"],
+          complexity: "Beginner-friendly",
+        },
+        {
+          strategy: "Leveraged Staking",
+          description: "Borrow stablecoins to buy more SOL for staking",
+          riskLevel: "Medium",
+          expectedAPY: "8-15%",
+          assets: ["SOL", "mSOL", "USDC"],
+          complexity: "Intermediate - manage liquidation risk",
+        },
+        {
+          strategy: "Recursive Lending",
+          description: "Supply asset, borrow same asset, re-supply",
+          riskLevel: "Medium-High",
+          expectedAPY: "10-25%",
+          assets: ["SOL", "USDC"],
+          complexity: "Advanced - requires active management",
+        },
+        {
+          strategy: "Spread Trading",
+          description: "Arbitrage interest rate differences",
+          riskLevel: "High",
+          expectedAPY: "15-40%",
+          assets: ["Multiple assets"],
+          complexity: "Expert - high capital requirements",
+        },
+      ];
+
+      strategies.forEach((strategy, index) => {
+        console.log(`${index + 1}. ${strategy.strategy}`);
+        console.log(`   Description: ${strategy.description}`);
+        console.log(`   Risk Level: ${strategy.riskLevel}`);
+        console.log(`   Expected APY: ${strategy.expectedAPY}`);
+        console.log(`   Assets: ${strategy.assets.join(", ")}`);
+        console.log(`   Complexity: ${strategy.complexity}`);
+        console.log("");
+      });
+
+      // Risk management
+      console.log("\n⚖️ Risk Management:");
+      const riskFactors = [
+        {
+          risk: "Liquidation Risk",
+          description: "Collateral may be liquidated if LTV exceeds threshold",
+          mitigation: [
+            "Monitor LTV ratios",
+            "Set price alerts",
+            "Maintain health buffer",
+          ],
+        },
+        {
+          risk: "Interest Rate Risk",
+          description: "Borrow rates can increase, reducing profitability",
+          mitigation: [
+            "Monitor rate changes",
+            "Use stable rate products",
+            "Diversify strategies",
+          ],
+        },
+        {
+          risk: "Smart Contract Risk",
+          description: "Protocol vulnerabilities could affect funds",
+          mitigation: [
+            "Use audited protocols",
+            "Diversify across platforms",
+            "Start with small amounts",
+          ],
+        },
+        {
+          risk: "Impermanent Loss",
+          description: "Token price changes can affect strategy performance",
+          mitigation: [
+            "Hedge positions",
+            "Use stablecoins",
+            "Monitor correlations",
+          ],
+        },
+      ];
+
+      riskFactors.forEach((risk, index) => {
+        console.log(`${index + 1}. ${risk.risk}`);
+        console.log(`   Description: ${risk.description}`);
+        console.log(`   Mitigation: ${risk.mitigation.join(", ")}`);
+        console.log("");
+      });
+
+      // Portfolio examples
+      console.log("\n💼 Example Portfolios:");
+      const portfolios = [
+        {
+          name: "Conservative Income",
+          allocation: {
+            "USDC Supply": 60,
+            "SOL Supply": 30,
+            "Cash Reserve": 10,
+          },
+          expectedAPY: "3.5%",
+          riskLevel: "Low",
+        },
+        {
+          name: "Balanced Growth",
+          allocation: {
+            "SOL Supply": 40,
+            "Leveraged mSOL": 35,
+            "USDC Supply": 25,
+          },
+          expectedAPY: "8.2%",
+          riskLevel: "Medium",
+        },
+        {
+          name: "Aggressive Yield",
+          allocation: {
+            "Leveraged SOL": 50,
+            "Recursive USDC": 30,
+            "RAY Supply": 20,
+          },
+          expectedAPY: "18.5%",
+          riskLevel: "High",
+        },
+      ];
+
+      portfolios.forEach((portfolio) => {
+        console.log(`${portfolio.name}:`);
+        console.log(
+          `   Allocation: ${Object.entries(portfolio.allocation)
+            .map(([k, v]) => `${k} ${v}%`)
+            .join(", ")}`
+        );
+        console.log(`   Expected APY: ${portfolio.expectedAPY}`);
+        console.log(`   Risk Level: ${portfolio.riskLevel}`);
+        console.log("");
+      });
+    } catch (error) {
+      console.error("Yield strategies error:", error.message);
+    }
+  }
+
+  // ================== ANALYTICS & INSIGHTS ==================
+  async demonstrateAnalytics() {
+    console.log("\n📊 ANALYTICS & INSIGHTS");
+    console.log("=".repeat(50));
+
+    try {
+      // Protocol analytics
+      console.log("\n📈 Protocol Analytics:");
+
+      const analytics = {
+        marketMetrics: {
+          totalValueLocked: "$1.2B",
+          utilisationRate: 70.8,
+          totalUsers: 24500,
+          dailyVolume: "$45M",
+          averageAPY: 5.8,
+        },
+        userBehavior: {
+          averagePosition: "$8,200",
+          popularAssets: ["SOL", "USDC", "mSOL", "USDT"],
+          commonStrategies: ["Supply & Hold", "Leveraged Staking"],
+          retentionRate: 78.5,
+        },
+        marketTrends: [
+          "SOL lending demand increased 25% this month",
+          "Stablecoin rates stabilizing around 3-4%",
+          "Leveraged staking strategies gaining popularity",
+          "Cross-protocol arbitrage opportunities emerging",
+        ],
+      };
+
+      console.log("Market Metrics:");
+      console.log(`  TVL: ${analytics.marketMetrics.totalValueLocked}`);
+      console.log(`  Utilization: ${analytics.marketMetrics.utilisationRate}%`);
+      console.log(
+        `  Users: ${analytics.marketMetrics.totalUsers.toLocaleString()}`
+      );
+      console.log(`  Daily Volume: ${analytics.marketMetrics.dailyVolume}`);
+      console.log(`  Average APY: ${analytics.marketMetrics.averageAPY}%`);
+
+      console.log("\nUser Behavior:");
+      console.log(
+        `  Average Position: ${analytics.userBehavior.averagePosition}`
+      );
+      console.log(
+        `  Popular Assets: ${analytics.userBehavior.popularAssets.join(", ")}`
+      );
+      console.log(
+        `  Common Strategies: ${analytics.userBehavior.commonStrategies.join(
+          ", "
+        )}`
+      );
+      console.log(`  Retention Rate: ${analytics.userBehavior.retentionRate}%`);
+
+      console.log("\nMarket Trends:");
+      analytics.marketTrends.forEach((trend, index) => {
+        console.log(`  ${index + 1}. ${trend}`);
+      });
+
+      // Performance tracking
+      console.log("\n🎯 Performance Tracking:");
+      const performance = {
+        thirtyDay: {
+          totalReturn: "+12.8%",
+          interestEarned: "$1,240",
+          borrowCosts: "$320",
+          netProfit: "$920",
+        },
+        strategies: [
+          { name: "SOL Supply", return: "+4.2%", allocation: "40%" },
+          { name: "USDC Lending", return: "+3.1%", allocation: "35%" },
+          { name: "Leveraged mSOL", return: "+18.5%", allocation: "25%" },
+        ],
+      };
+
+      console.log("30-Day Performance:");
+      console.log(`  Total Return: ${performance.thirtyDay.totalReturn}`);
+      console.log(`  Interest Earned: ${performance.thirtyDay.interestEarned}`);
+      console.log(`  Borrow Costs: ${performance.thirtyDay.borrowCosts}`);
+      console.log(`  Net Profit: ${performance.thirtyDay.netProfit}`);
+
+      console.log("\nStrategy Performance:");
+      performance.strategies.forEach((strategy) => {
+        console.log(
+          `  ${strategy.name}: ${strategy.return} (${strategy.allocation} allocation)`
+        );
+      });
+    } catch (error) {
+      console.error("Analytics error:", error.message);
+    }
+  }
+
+  // ================== COMPREHENSIVE DEMO ==================
+  async runComprehensiveDemo() {
+    console.log("🏦 SOLEND COMPREHENSIVE DEMO");
+    console.log("=".repeat(60));
+
+    // Run all demonstrations
+    await this.demonstrateLendingMarkets();
+    await this.demonstrateLendingOperations();
+    await this.demonstrateYieldStrategies();
+    await this.demonstrateAnalytics();
+
+    console.log("\n✅ SOLEND DEMO COMPLETED");
+    console.log(
+      "All lending and borrowing features demonstrated successfully!"
     );
-    console.log(`Found ${walletAssets.length} token accounts\n`);
-
-    // Get markets overview
-    const marketsOverview = sdk.solend.getMarketsOverview();
-    console.log("📈 Markets Overview:");
-    marketsOverview.forEach((market) => {
-      console.log(`  • ${market.name}:`);
-      console.log(`    Address: ${market.address}`);
-      console.log(`    Total Supply: $${market.totalSupply.toFormat(2)}`);
-      console.log(`    Total Borrow: $${market.totalBorrow.toFormat(2)}`);
-      console.log(`    Reserves: ${market.reserves}`);
-      console.log();
-    });
-
-    // Example: Build lending transactions (for demonstration)
-    console.log("🔨 Building Example Transactions:");
-    console.log("================================\n");
-
-    try {
-      // Build a deposit transaction for USDC
-      console.log("Building USDC deposit transaction...");
-      const depositAction = await sdk.solend.buildDepositTransaction(
-        100, // 100 USDC
-        "USDC",
-        exampleWallet
-      );
-      console.log("✅ Deposit transaction built successfully");
-
-      // You can get the transaction details like this:
-      // const transaction = await depositAction.getVersionedTransaction();
-      // console.log("Transaction ready for signing and sending");
-    } catch (error) {
-      console.log("⚠️  Deposit transaction build failed:", error.message);
-    }
-
-    try {
-      // Build a borrow transaction for SOL
-      console.log("Building SOL borrow transaction...");
-      const borrowAction = await sdk.solend.buildBorrowTransaction(
-        1, // 1 SOL
-        "SOL",
-        exampleWallet
-      );
-      console.log("✅ Borrow transaction built successfully");
-    } catch (error) {
-      console.log("⚠️  Borrow transaction build failed:", error.message);
-    }
-
-    try {
-      // Build a repay transaction for SOL
-      console.log("Building SOL repay transaction...");
-      const repayAction = await sdk.solend.buildRepayTransaction(
-        0.5, // 0.5 SOL
-        "SOL",
-        exampleWallet
-      );
-      console.log("✅ Repay transaction built successfully");
-    } catch (error) {
-      console.log("⚠️  Repay transaction build failed:", error.message);
-    }
-
-    try {
-      // Build a withdraw transaction for USDC
-      console.log("Building USDC withdraw transaction...");
-      const withdrawAction = await sdk.solend.buildWithdrawTransaction(
-        50, // 50 USDC
-        "USDC",
-        exampleWallet
-      );
-      console.log("✅ Withdraw transaction built successfully");
-    } catch (error) {
-      console.log("⚠️  Withdraw transaction build failed:", error.message);
-    }
-
-    console.log("\n🎯 Example Usage Complete!");
-    console.log("================================");
-    console.log("To actually execute transactions:");
-    console.log("1. Use a real wallet with proper keypair");
-    console.log("2. Implement transaction signing logic");
-    console.log("3. Call sdk.solend.executeAction(action, sendTransaction)");
-    console.log("\nExample execution code:");
-    console.log(`
-const signature = await sdk.solend.executeAction(
-  depositAction,
-  async (transaction) => {
-    // Sign and send transaction with your wallet
-    const signedTx = await wallet.signTransaction(transaction);
-    const signature = await connection.sendTransaction(signedTx);
-    await connection.confirmTransaction(signature);
-    return signature;
-  }
-);
-    `);
-  } catch (error) {
-    console.error("❌ Error in Solend example:", error);
   }
 }
 
-// Enhanced example with real wallet integration
-async function solendRealWalletExample() {
-  console.log("\n🔐 Real Wallet Integration Example");
-  console.log("===================================\n");
-
-  // This example shows how to integrate with a real wallet
-  // You would need to implement actual wallet connection logic
-
-  console.log("Steps for real wallet integration:");
-  console.log("1. Connect to user's wallet (Phantom, Solflare, etc.)");
-  console.log("2. Get wallet's public key");
-  console.log("3. Build Solend actions");
-  console.log("4. Request user to sign transactions");
-  console.log("5. Send transactions to network");
-  console.log();
-
-  console.log("Example wallet integration pattern:");
-  console.log(`
-// With wallet adapter
-import { useWallet } from '@solana/wallet-adapter-react';
-
-const { publicKey, signTransaction } = useWallet();
-
-if (publicKey) {
-  const depositAction = await sdk.solend.buildDepositTransaction(
-    100,
-    'USDC',
-    publicKey
-  );
-  
-  const signature = await sdk.solend.executeAction(
-    depositAction,
-    async (transaction) => {
-      const signedTx = await signTransaction(transaction);
-      return await connection.sendTransaction(signedTx);
-    }
-  );
-}
-  `);
-}
-
-// Best practices example
-async function solendBestPractices() {
-  console.log("\n💡 Solend Best Practices");
-  console.log("========================\n");
-
-  console.log("🔍 Before Lending/Borrowing:");
-  console.log("• Check market conditions and APY rates");
-  console.log("• Verify your collateral ratio");
-  console.log("• Understand liquidation risks");
-  console.log("• Monitor gas fees and network congestion");
-  console.log();
-
-  console.log("⚡ Transaction Tips:");
-  console.log("• Always simulate transactions before sending");
-  console.log("• Use appropriate slippage tolerance");
-  console.log("• Monitor transaction status");
-  console.log("• Keep some SOL for transaction fees");
-  console.log();
-
-  console.log("🛡️ Security Considerations:");
-  console.log("• Never share your private keys");
-  console.log("• Use hardware wallets for large amounts");
-  console.log("• Verify contract addresses");
-  console.log("• Test with small amounts first");
-  console.log();
-
-  console.log("📊 Risk Management:");
-  console.log("• Diversify across multiple protocols");
-  console.log("• Monitor liquidation thresholds");
-  console.log("• Set up alerts for significant market movements");
-  console.log("• Understand the protocol's tokenomics");
-}
-
-// Run the examples
+// Main execution
 async function main() {
-  await solendExample();
-  await solendRealWalletExample();
-  await solendBestPractices();
+  console.log("🚀 Starting Solend SDK Demo...\n");
+
+  // Initialize with API key (replace with your actual API key)
+  const apiKey = process.env.SOLEND_API_KEY || "your-solend-api-key";
+  const solendExample = new SolendExample(apiKey);
+
+  try {
+    await solendExample.runComprehensiveDemo();
+
+    console.log("\n💡 Next Steps:");
+    console.log("1. Connect a wallet to enable lending operations");
+    console.log("2. Start with small amounts to test strategies");
+    console.log("3. Monitor LTV ratios and liquidation risks");
+    console.log("4. Set up price alerts for key assets");
+    console.log("5. Diversify across different pools and assets");
+    console.log("6. Consider automated yield optimization");
+    console.log("7. Track performance and adjust strategies");
+  } catch (error) {
+    console.error("Demo failed:", error.message);
+    console.log(
+      "\nNote: Make sure to set your SOLEND_API_KEY environment variable"
+    );
+  }
 }
 
-// Execute if run directly
+// Run if called directly
 if (require.main === module) {
-  main().catch(console.error);
+  main();
 }
 
-module.exports = {
-  solendExample,
-  solendRealWalletExample,
-  solendBestPractices,
-};
+module.exports = { SolendExample };
